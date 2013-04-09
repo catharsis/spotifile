@@ -10,14 +10,4 @@ appkey.o: appkey.c
 clean:
 	rm -f spotifile *.o
 
-test-cleanup:
-	@fusermount -u test
-
-test: spotifile test-cleanup
-	mkdir -p ./test
-	./spotifile test
-	ls -AlF | grep test && cd test && ls && cd ..
-
 all: spotifile
-
-.PHONY=test test-cleanup
