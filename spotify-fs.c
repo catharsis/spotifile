@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 	char *password = NULL;
 	char *username = malloc(SPOTIFY_USERNAME_MAXLEN);
 	if ((getuid() == 0) || (geteuid() == 0)) {
-		fprintf(stderr, "Running spotifile as root is not a good idea\n");
+		fprintf(stderr, "Running %s as root is not a good idea\n", application_name);
 		return 1;
 	}
 	printf("spotify username: ");

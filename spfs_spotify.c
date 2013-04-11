@@ -46,7 +46,7 @@ int spotify_session_init(const char *username, const char *password,
 	config.application_key_size = g_appkey_size;
 	config.callbacks = &spotify_callbacks;
 
-	config.user_agent = "spotifile";
+	config.user_agent = application_name;
 	error = sp_session_create(&config, &session);
 	if ( error != SP_ERROR_OK ) {
 		fprintf(stderr, "failed to create session: %s\n",
