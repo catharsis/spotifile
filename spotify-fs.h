@@ -7,3 +7,6 @@
 #include <stdlib.h>
 
 sp_session *spotify_session;
+int spotify_session_init(const char *username, const char *password, const char *blob);
+
+struct fuse_operations spfs_operations;

@@ -1,11 +1,11 @@
-spotifile: spotify-fs.o appkey.o
-	gcc -g -o spotifile  appkey.o spotify-fs.o `pkg-config fuse libspotify --libs`
+OBJS = spfs_fuse.o spfs_spotify.o appkey.o spotify-fs.o 
+CFLAGS += -g -Wall -Werror
+CFLAGS += `pkg-config fuse libspotify --cflags`
+spotifile: $(OBJS)
+	gcc $(CFLAGS) -o $@  $^ `pkg-config fuse libspotify --libs`
 
 spotify-fs.o: spotify-fs.c
-	gcc -g -Wall -Werror `pkg-config fuse libspotify --cflags` -c spotify-fs.c
-
-appkey.o: appkey.c
-	gcc -g -Wall -Werror -c appkey.c
+	gcc $(CFLAGS) -c $^
 
 clean:
 	rm -f spotifile *.o
