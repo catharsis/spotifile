@@ -20,28 +20,8 @@ int spfs_getattr(const char *path, struct stat *statbuf)
 }
 
 size_t connection_file_read(char *buf, size_t size, off_t offset) {
-	sp_connectionstate connectionstate = sp_session_connectionstate(spotify_session);
-	char *state_str;
+	char *state_str = spotify_connectionstate_str();
 	size_t len = 0;
-	switch (connectionstate) {
-		case SP_CONNECTION_STATE_LOGGED_OUT: //User not yet logged in.
-			state_str = strdup("logged out");
-			break;
-		case SP_CONNECTION_STATE_LOGGED_IN: //Logged in against a Spotify access point.
-			state_str = strdup("logged in");
-			break;
-		case SP_CONNECTION_STATE_DISCONNECTED: //Was logged in, but has now been disconnected.
-			state_str = strdup("disconnected");
-			break;
-		case SP_CONNECTION_STATE_OFFLINE:
-			state_str = strdup("offline");
-			break;
-		case SP_CONNECTION_STATE_UNDEFINED: //The connection state is undefined.
-			//FALLTHROUGH
-		default:
-			state_str = strdup("undefined");
-			break;
-	}
 
 	if ((len = strlen(state_str)) > offset) {
 		if ( offset + size > len)

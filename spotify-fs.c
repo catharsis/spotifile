@@ -1,11 +1,13 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
+#include <errno.h>
 #include "spotify-fs.h"
 
 int main(int argc, char *argv[])
 {
-	int retstat = 0;
+	int retval = 0;
 	char *password = NULL;
 	char *username = malloc(SPOTIFY_USERNAME_MAXLEN);
 	if ((getuid() == 0) || (geteuid() == 0)) {
@@ -20,10 +22,10 @@ int main(int argc, char *argv[])
 		password = NULL;
 	}
 
-
-	fprintf(stderr, "about to call fuse_main\n");
-	if(spotify_session_init(username, password, NULL) == 0)
-		retstat = fuse_main(argc, argv, &spfs_operations, NULL);
-
-	return retstat;
+	/* should we do something about this, really?
+	 * Maybe put error logging here instead of in
+	 * spotify_session_init()*/
+	(void) spotify_session_init(username, password, NULL);
+	retval = fuse_main(argc, argv, &spfs_operations, NULL);
+	return retval;
 }
