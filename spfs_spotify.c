@@ -53,6 +53,7 @@ int spotify_session_init(const char *username, const char *password,
 		const char *blob)
 {
 	int s = 0;
+	int remember_me = 0;
 	extern const uint8_t g_appkey[];
 	extern const size_t g_appkey_size;
 	sp_session_config config;
@@ -74,7 +75,7 @@ int spotify_session_init(const char *username, const char *password,
 		return 2;
 	}
 	printf("session created!\n");
-	if(spotify_login(session, username, password, blob) == 0) {
+	if(spotify_login(session, username, password, remember_me, blob) == SP_ERROR_OK) {
 		g_spotify_session = session;
 		return 0;
 	}
