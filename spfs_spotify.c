@@ -137,5 +137,17 @@ char * spotify_connectionstate_str() {
 }
 /*thread routine*/
 void * spotify_thread_start_routine(void *arg) {
+	int event_timeout = 0, ret = 0;
+	sp_error err;
+
+	for(;;) {
+		MUTEX_LOCK(ret, &spotify_mutex);
+		err = sp_session_process_events(g_spotify_session, &event_timeout);
+		MUTEX_UNLOCK(ret, &spotify_mutex);
+		if (err != SP_ERROR_OK) {
+			spfs_log("Unknown error while processing events\n");
+		}
+		usleep(event_timeout);
+	}
 	return (void *)NULL;
 }

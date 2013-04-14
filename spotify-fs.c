@@ -10,6 +10,14 @@ struct spotify_credentials {
 	char *password;
 };
 
+
+/*real stupid logging function, for now*/
+void spfs_log(const char *message)
+{
+	FILE *logfile = fopen("spotifile.log", "a");
+	fprintf(logfile, message);
+	fclose(logfile);
+}
 void *spfs_init(struct fuse_conn_info *conn)
 {
 	struct fuse_context *context = fuse_get_context();
