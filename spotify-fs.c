@@ -16,6 +16,10 @@ int main(int argc, char *argv[])
 	}
 	printf("spotify username: ");
 	username = fgets(username, SPOTIFY_USERNAME_MAXLEN, stdin);
+	long username_len = strlen(username);
+	if(username[username_len-1] == '\n') {
+		username[username_len-1] = '\0';
+	}
 	password = getpass("spotify password: ");
 	if (strlen(password) <= 0)
 	{
