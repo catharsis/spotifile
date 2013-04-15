@@ -5,6 +5,7 @@
 #include <fuse.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
 #include <pthread.h>
 
 void spfs_log(const char *format, ...);
@@ -30,6 +31,7 @@ void spfs_log_errno(const char *topic);
 
 
 static const char application_name[] = "spotifile";
+extern time_t g_logged_in_at;
 
 
 /*spotify stuff*/

@@ -3,10 +3,11 @@
 #include <stdio.h>
 #include <errno.h>
 #include <pthread.h>
+#include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
 sp_session *g_spotify_session;
-bool g_logged_in = false;
+time_t g_logged_in_at = (time_t) -1;
 pthread_mutex_t spotify_mutex;
 pthread_t spotify_thread;
 
@@ -38,7 +39,7 @@ static void spotify_log_message(sp_session *session, const char *message) {
 }
 
 static void spotify_logged_out(sp_session *session) {
-	g_logged_in = false;
+	g_logged_in_at = (time_t) -1;
 	spfs_log("spotify login: logged out");
 }
 
@@ -47,9 +48,11 @@ static void spotify_logged_in(sp_session *session, sp_error error)
 	/* TODO: might be we want to keep this information available
 	 * to users through some file so that they don't have to sift
 	 * through the logs?*/
-	g_logged_in = (SP_ERROR_OK == error);
 	spfs_log("spotify login: %s", sp_error_message(error));
-
+	if(SP_ERROR_OK == error) {
+		time(&g_logged_in_at);
+		spfs_log("logged in successfully at %d", g_logged_in_at);
+	}
 }
 
 static void spotify_connection_error(sp_session *session, sp_error error)

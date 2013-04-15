@@ -4,6 +4,7 @@
 int spfs_getattr(const char *path, struct stat *statbuf)
 {
 	int res = 0;
+	extern time_t g_logged_in_at;
 	memset(statbuf, 0, sizeof(struct stat));
 	if(strcmp(path, "/") == 0) {
 		statbuf->st_mode = S_IFDIR | 0755;
@@ -13,6 +14,7 @@ int spfs_getattr(const char *path, struct stat *statbuf)
 		statbuf->st_mode = S_IFREG | 0444;
 		statbuf->st_nlink = 1;
 		statbuf->st_size = 64;
+		statbuf->st_mtime = g_logged_in_at;
 	}
 	else
 		res = -ENOENT;
