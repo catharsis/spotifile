@@ -34,6 +34,9 @@ int spotify_login(sp_session *session, const char *username, const char *passwor
 static void spotify_logged_in(sp_session *session, sp_error error)
 {
 	spfs_log("Log in callback happened");
+	if(error != SP_ERROR_OK) {
+		spfs_log("(%d) %s", error, sp_error_message(error));
+	}
 }
 
 static void spotify_connection_error(sp_session *session, sp_error error)
