@@ -61,7 +61,6 @@ static sp_session_callbacks spotify_callbacks = {
 	.logged_in = spotify_logged_in,
 	.connection_error = spotify_connection_error,
 	.logged_out = spotify_logged_out,
-	.logged_in = spotify_logged_in,
 	.log_message = spotify_log_message,
 };
 
