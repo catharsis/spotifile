@@ -4,8 +4,9 @@
 #include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdbool.h>
 sp_session *g_spotify_session;
-bool g_logged_in;
+bool g_logged_in = false;
 pthread_mutex_t spotify_mutex;
 pthread_t spotify_thread;
 
@@ -32,6 +33,11 @@ int spotify_login(sp_session *session, const char *username, const char *passwor
 
 }
 
+static void spotify_logged_out(sp_session *session) {
+	g_logged_in = false;
+	spfs_log("spotify login: logged out");
+}
+
 static void spotify_logged_in(sp_session *session, sp_error error)
 {
 	/* TODO: might be we want to keep this information available
@@ -50,6 +56,7 @@ static void spotify_connection_error(sp_session *session, sp_error error)
 static sp_session_callbacks spotify_callbacks = {
 	.logged_in = spotify_logged_in,
 	.connection_error = spotify_connection_error,
+	.logged_out = spotify_logged_out,
 };
 
 int spotify_session_init(const char *username, const char *password,
