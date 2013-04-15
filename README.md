@@ -28,7 +28,7 @@ Playback is currently not a priority, but will hopefully be implemented eventual
 
 ## dependencies
 > * libspotify 
-> * fuse
+> * fuse >= 2.6
 
 ## libspotify app key
 In order to compile spotifile, you need to provide your own appkey.c.
