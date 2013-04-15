@@ -32,6 +32,9 @@ int spotify_login(sp_session *session, const char *username, const char *passwor
 	return 0;
 
 }
+static void spotify_log_message(sp_session *session, const char *message) {
+	spfs_log("spotify: %s", message);
+}
 
 static void spotify_logged_out(sp_session *session) {
 	g_logged_in = false;
@@ -57,6 +60,8 @@ static sp_session_callbacks spotify_callbacks = {
 	.logged_in = spotify_logged_in,
 	.connection_error = spotify_connection_error,
 	.logged_out = spotify_logged_out,
+	.logged_in = spotify_logged_in,
+	.log_message = spotify_log_message,
 };
 
 int spotify_session_init(const char *username, const char *password,
