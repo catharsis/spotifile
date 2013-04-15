@@ -8,6 +8,9 @@ sp_session *g_spotify_session;
 pthread_mutex_t spotify_mutex;
 pthread_t spotify_thread;
 
+/*foward declarations*/
+void * spotify_thread_start_routine(void *arg);
+
 int spotify_login(sp_session *session, const char *username, const char *password, const char *blob) {
 	if (username == NULL) {
 		printf("no credentials given, trying relogin\n");

@@ -34,7 +34,6 @@ static const char application_name[] = "spotifile";
 
 /*spotify stuff*/
 int spotify_session_init(const char *username, const char *password, const char *blob);
-void * spotify_thread_start_routine(void *arg);
 char * spotify_connectionstate_str();
 
 /* fuse stuff */
