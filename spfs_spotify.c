@@ -36,8 +36,14 @@ static void spotify_logged_in(sp_session *session, sp_error error)
 	spfs_log("Log in callback happened");
 }
 
+static void spotify_connection_error(sp_session *session, sp_error error)
+{
+	spfs_log("Connection error %d: %s\n", error, sp_error_message(error));
+}
+
 static sp_session_callbacks spotify_callbacks = {
-		.logged_in = spotify_logged_in,
+	.logged_in = spotify_logged_in,
+	.connection_error = spotify_connection_error,
 };
 
 int spotify_session_init(const char *username, const char *password,
@@ -136,7 +142,7 @@ void * spotify_thread_start_routine(void *arg) {
 		err = sp_session_process_events(g_spotify_session, &event_timeout);
 		MUTEX_UNLOCK(ret, &spotify_mutex);
 		if (err != SP_ERROR_OK) {
-			spfs_log("Unknown error while processing events");
+			spfs_log("Could not process events (%d): %s\n", err, sp_error_message(err));
 		}
 		usleep(event_timeout);
 	}
