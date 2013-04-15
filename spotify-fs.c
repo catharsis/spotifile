@@ -29,25 +29,40 @@ void spfs_log_close()
 void spfs_log(const char *format, ...)
 {
 	static pthread_mutex_t logmutex = PTHREAD_MUTEX_INITIALIZER;
+	char *lformat = strdup(format);
+	lformat = realloc(lformat, strlen(format) + 1);
+	strncat(lformat, "\n", strlen(format) + 1);
 	va_list ap;
 	int ret = 0;
 	va_start(ap, format);
 	MUTEX_LOCK(ret, &logmutex);
-	vfprintf(logfile, format, ap);
+	vfprintf(logfile, lformat, ap);
 	fflush(logfile);
 	MUTEX_UNLOCK(ret, &logmutex);
 	va_end(ap);
+	free(lformat);
+}
+
+void spfs_log_errno(const char *topic) {
+	char *local_topic = strdup(topic);
+	char *message = strerror(errno);
+	size_t totlen = 0;
+	totlen = strlen(topic) + strlen(message);
+	local_topic = realloc(local_topic, totlen);
+	strncat(local_topic, message, totlen);
+	spfs_log(local_topic);
+	free(local_topic);
 }
 void *spfs_init(struct fuse_conn_info *conn)
 {
 	struct fuse_context *context = fuse_get_context();
-	spfs_log("%s initialising ...\n", application_name);
+	spfs_log("%s initialising ...", application_name);
 	struct spotify_credentials *credentials = (struct spotify_credentials *)context->private_data;
 	/* should we do something about this, really?
 	 * Maybe put error logging here instead of in
 	 * spotify_session_init()*/
 	(void) spotify_session_init(credentials->username, credentials->password, NULL);
-	spfs_log("%s initialised\n", application_name);
+	spfs_log("%s initialised", application_name);
 	return NULL;
 
 }

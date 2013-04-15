@@ -7,11 +7,14 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+void spfs_log(const char *format, ...);
+void spfs_log_errno(const char *topic);
+
 #define handle_error_en(en, msg) \
-	do { errno = en; perror(msg); exit(EXIT_FAILURE); } while(0)
+	do { errno = en; spfs_log_errno(msg); exit(EXIT_FAILURE); } while(0)
 
 #define handle_error(msg) \
-	do { perror(msg); exit(EXIT_FAILURE); } while(0)
+	do { spfs_log_errno(msg); exit(EXIT_FAILURE); } while(0)
 
 #define MUTEX_LOCK(mx_lock_ret, m) \
 	do { \
@@ -28,7 +31,6 @@
 
 static const char application_name[] = "spotifile";
 
-void spfs_log(const char *format, ...);
 
 /*spotify stuff*/
 int spotify_session_init(const char *username, const char *password, const char *blob);
