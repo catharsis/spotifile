@@ -25,9 +25,10 @@ int spotify_login(sp_session *session, const char *username, const char *passwor
 		sp_session_remembered_user(session, reloginname, sizeof(reloginname));
 		spfs_log("Trying to relogin as user %s\n", reloginname);
 
-	}
-	else
+	} else {
+		spfs_log("Trying to login as %s", username);
 		sp_session_login(session, username, password, 1, blob);
+	}
 
 	return 0;
 
