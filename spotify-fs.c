@@ -69,8 +69,9 @@ void *spfs_init(struct fuse_conn_info *conn)
 
 void spfs_destroy(void *init_retval)
 {
-	spfs_log("%s destroyed\n", application_name);
+	spfs_log("%s destroyed", application_name);
 	spfs_log_close();
+	pthread_exit(NULL);
 }
 
 struct spotify_credentials *request_credentials()

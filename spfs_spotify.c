@@ -14,11 +14,11 @@ int spotify_login(sp_session *session, const char *username, const char *passwor
 		char reloginname[256];
 
 		if (sp_session_relogin(session) == SP_ERROR_NO_CREDENTIALS) {
-			fprintf(stderr, "no stored credentials\n");
+			spfs_log("no stored credentials");
 			return 1;
 		}
 		sp_session_remembered_user(session, reloginname, sizeof(reloginname));
-		fprintf(stderr, "Trying to relogin as user %s\n", reloginname);
+		spfs_log("Trying to relogin as user %s\n", reloginname);
 
 	}
 	else
@@ -57,17 +57,17 @@ int spotify_session_init(const char *username, const char *password,
 	config.user_agent = application_name;
 	error = sp_session_create(&config, &session);
 	if ( error != SP_ERROR_OK ) {
-		fprintf(stderr, "failed to create session: %s\n",
+		spfs_log("failed to create session: %s",
 				sp_error_message(error));
 		return 2;
 	}
-	printf("session created!\n");
+	spfs_log("spotify session created!");
 	if(spotify_login(session, username, password, blob) == 0) {
 		g_spotify_session = session;
 		return 0;
 	}
 	else {
-		fprintf(stderr, "login failed!\n");
+		spfs_log("login failed!");
 		return 1;
 	}
 
