@@ -28,6 +28,7 @@ Playback is currently not a priority, but will hopefully be implemented eventual
 
 ## dependencies
 > * libspotify 
+> * appkey.c, retrieved from spotify.com (you need a premium account)
 > * fuse >= 2.6
 
 ## libspotify app key
