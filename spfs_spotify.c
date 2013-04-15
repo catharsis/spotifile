@@ -8,18 +8,6 @@ sp_session *g_spotify_session;
 pthread_mutex_t spotify_mutex;
 pthread_t spotify_thread;
 
-#define MUTEX_LOCK(mx_lock_ret, m) \
-	do { \
-		if ((mx_lock_ret = pthread_mutex_lock(m)) != 0) \
-			handle_error_en(mx_lock_ret, "pthread_mutex_lock"); \
-	} while (0)
-
-#define MUTEX_UNLOCK(mx_unlock_ret, m) \
-	do { \
-		if ((mx_unlock_ret = pthread_mutex_unlock(m)) != 0) \
-			handle_error_en(mx_unlock_ret, "pthread_mutex_unlock"); \
-	} while (0)
-
 int spotify_login(sp_session *session, const char *username, const char *password, const char *blob) {
 	if (username == NULL) {
 		printf("no credentials given, trying relogin\n");
@@ -42,7 +30,7 @@ int spotify_login(sp_session *session, const char *username, const char *passwor
 
 static void spotify_logged_in(sp_session *session, sp_error error)
 {
-	return;
+	spfs_log("Log in callback happened\n");
 }
 
 static sp_session_callbacks spotify_callbacks = {
@@ -139,7 +127,7 @@ char * spotify_connectionstate_str() {
 void * spotify_thread_start_routine(void *arg) {
 	int event_timeout = 0, ret = 0;
 	sp_error err;
-
+	spfs_log("spotify session processing thread started\n");
 	for(;;) {
 		MUTEX_LOCK(ret, &spotify_mutex);
 		err = sp_session_process_events(g_spotify_session, &event_timeout);
@@ -149,5 +137,6 @@ void * spotify_thread_start_routine(void *arg) {
 		}
 		usleep(event_timeout);
 	}
+	spfs_log("spotify session processing thread ended\n");
 	return (void *)NULL;
 }

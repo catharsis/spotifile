@@ -3,31 +3,59 @@
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
+#include <stdarg.h>
 #include "spotify-fs.h"
-
 struct spotify_credentials {
 	char *username;
 	char *password;
 };
+FILE *logfile;
 
-
-/*real stupid logging function, for now*/
-void spfs_log(const char *message)
+void spfs_log_init(const char *log_path)
 {
-	FILE *logfile = fopen("spotifile.log", "a");
-	fprintf(logfile, message);
-	fclose(logfile);
+	logfile = fopen("spotifile.log", "w");
+	if (logfile == NULL) {
+		handle_error("fopen");
+	}
+}
+
+void spfs_log_close()
+{
+	if(fclose(logfile) != 0)
+		handle_error("fclose");
+}
+
+/*thread safe, but non-reentrant */
+void spfs_log(const char *format, ...)
+{
+	static pthread_mutex_t logmutex = PTHREAD_MUTEX_INITIALIZER;
+	va_list ap;
+	int ret = 0;
+	va_start(ap, format);
+	MUTEX_LOCK(ret, &logmutex);
+	vfprintf(logfile, format, ap);
+	fflush(logfile);
+	MUTEX_UNLOCK(ret, &logmutex);
+	va_end(ap);
 }
 void *spfs_init(struct fuse_conn_info *conn)
 {
 	struct fuse_context *context = fuse_get_context();
+	spfs_log("%s initialising ...\n", application_name);
 	struct spotify_credentials *credentials = (struct spotify_credentials *)context->private_data;
 	/* should we do something about this, really?
 	 * Maybe put error logging here instead of in
 	 * spotify_session_init()*/
 	(void) spotify_session_init(credentials->username, credentials->password, NULL);
+	spfs_log("%s initialised\n", application_name);
 	return NULL;
 
+}
+
+void spfs_destroy(void *init_retval)
+{
+	spfs_log("%s destroyed\n", application_name);
+	spfs_log_close();
 }
 
 struct spotify_credentials *request_credentials()
@@ -61,7 +89,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	credentials = request_credentials();
+	spfs_log_init("./spotifile.log");
 	spfs_operations.init = spfs_init;
+	spfs_operations.destroy = spfs_destroy;
 	retval = fuse_main(argc, argv, &spfs_operations, credentials);
 	if (retval != 0) {
 		fprintf(stderr, "Error initialising spotifile\n");
