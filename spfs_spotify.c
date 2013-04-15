@@ -67,7 +67,6 @@ int spotify_session_init(const char *username, const char *password,
 	spfs_log("spotify session created!");
 	if(spotify_login(session, username, password, blob) == 0) {
 		g_spotify_session = session;
-		return 0;
 	}
 	else {
 		spfs_log("login failed!");
@@ -84,6 +83,7 @@ int spotify_session_init(const char *username, const char *password,
 	if ( s != 0) {
 		handle_error_en(s, "pthread_create");
 	}
+	return 0;
 }
 
 
