@@ -37,10 +37,10 @@ size_t connection_file_read(char *buf, size_t size, off_t offset) {
 int spfs_read(const char *path, char *buf, size_t size, off_t offset,
 		struct fuse_file_info *fi)
 {
-	if (strcmp(path, "/connection") != 0)
-		return -ENOENT;
+	if (!strcmp(path, "/connection"))
+		return connection_file_read(buf, size, offset);
+	return -ENOENT;
 
-	return connection_file_read(buf, size, offset);
 }
 
 int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
