@@ -30,6 +30,8 @@ Playback is currently not a priority, but will hopefully be implemented eventual
 > * libspotify 
 > * appkey.c, retrieved from spotify.com (you need a premium account)
 > * fuse >= 2.6
+> * nose (https://github.com/nose-devs/nose)
+> * sh (https://github.com/amoffat/sh)
 
 ## libspotify app key
 In order to compile spotifile, you need to provide your own appkey.c.
