@@ -33,6 +33,7 @@ size_t connection_file_read(char *buf, size_t size, off_t offset) {
 	else
 		size = 0;
 
+	free(state_str);
 	return size;
 }
 
