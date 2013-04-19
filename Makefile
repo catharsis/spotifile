@@ -12,3 +12,6 @@ clean:
 	rm -f spotifile *.o
 
 all: spotifile
+
+test: spotifile
+	nosetests
