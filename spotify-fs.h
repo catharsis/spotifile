@@ -1,6 +1,7 @@
 #define FUSE_USE_VERSION 26
 #define CONN_STATE_SIZE 128
 #define SPOTIFY_USERNAME_MAXLEN 128
+#define SPOTIFILE_VERSION "v0.0.1"
 #include <libspotify/api.h>
 #include <fuse.h>
 #include <stdint.h>

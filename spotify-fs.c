@@ -9,8 +9,55 @@ struct spotify_credentials {
 	char *username;
 	char *password;
 };
+
+struct spotifile_config {
+	char *spotify_username;
+	bool remember_me;
+};
+
+enum {
+	KEY_HELP,
+	KEY_VERSION,
+};
+
 FILE *logfile;
 
+#define SPFS_OPT(t, p, v) {t, offsetof(struct spotifile_config, p), v }
+
+static struct fuse_opt spfs_opts[] = {
+	SPFS_OPT("username=%s",		spotify_username, 0),
+	SPFS_OPT("--rememberme=true",	remember_me, 1),
+	SPFS_OPT("--rememberme=false",	remember_me, 0),
+	FUSE_OPT_KEY("-V",			KEY_VERSION),
+	FUSE_OPT_KEY("--version",	KEY_VERSION),
+	FUSE_OPT_KEY("-h",			KEY_HELP),
+	FUSE_OPT_KEY("--help",		KEY_HELP),
+	FUSE_OPT_END
+};
+
+static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_args *outargs)
+{
+	switch(key) {
+		case KEY_HELP:
+			fprintf(stderr,
+					"usage: %s mountpoint [options]\n"
+					"\n"
+					"general options:\n"
+					"		-o opt,[opt...]	mount options\n"
+					"		-h	--help		this cruft\n"
+					"		-V	--version	print version\n"
+					"\n"
+					"spotifile options:\n"
+					"		-o username=STRING\n"
+					"		--rememberme=BOOL\n"
+					, outargs->argv[0]);
+			exit(1);
+		case KEY_VERSION:
+			fprintf(stderr, "spotifile version %s\n", SPOTIFILE_VERSION);
+			exit(0);
+	}
+	return 1;
+}
 void spfs_log_init(const char *log_path)
 {
 	logfile = fopen("spotifile.log", "w");
@@ -99,11 +146,16 @@ struct spotify_credentials *request_credentials()
 int main(int argc, char *argv[])
 {
 	int retval = 0;
+	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+	struct spotifile_config conf;
 	struct spotify_credentials *credentials = NULL;
+	memset(&conf, 0, sizeof(conf));
 	if ((getuid() == 0) || (geteuid() == 0)) {
 		fprintf(stderr, "Running %s as root is not a good idea\n", application_name);
 		return 1;
 	}
+
+	fuse_opt_parse(&args, &conf, spfs_opts, spfs_opt_process);
 	credentials = request_credentials();
 	spfs_log_init("./spotifile.log");
 	spfs_operations.init = spfs_init;
