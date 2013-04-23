@@ -16,7 +16,6 @@ void * spotify_thread_start_routine(void *arg);
 
 int spotify_login(sp_session *session, const char *username, const char *password, const char *blob) {
 	if (username == NULL) {
-		printf("no credentials given, trying relogin\n");
 		char reloginname[256];
 
 		if (sp_session_relogin(session) == SP_ERROR_NO_CREDENTIALS) {
