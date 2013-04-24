@@ -14,4 +14,4 @@ clean:
 all: spotifile
 
 test: spotifile
-	python3 tests/test_spotifile.py
+	nosetests
