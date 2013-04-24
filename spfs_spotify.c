@@ -14,25 +14,25 @@ pthread_t spotify_thread;
 /*foward declarations*/
 void * spotify_thread_start_routine(void *arg);
 
-int spotify_login(sp_session *session, const char *username, const char *password, const char *blob) {
+int spotify_login(const char *username, const char *password, const char *blob) {
 	if (username == NULL) {
 		char reloginname[256];
 
-		if (sp_session_relogin(session) == SP_ERROR_NO_CREDENTIALS) {
+		if (sp_session_relogin(g_spotify_session) == SP_ERROR_NO_CREDENTIALS) {
 			spfs_log("no stored credentials");
 			return 1;
 		}
-		sp_session_remembered_user(session, reloginname, sizeof(reloginname));
-		spfs_log("Trying to relogin as user %s\n", reloginname);
+
+		sp_session_remembered_user(g_spotify_session, reloginname, sizeof(reloginname));
+		spfs_log("trying to relogin as user %s\n", reloginname);
 
 	} else {
-		spfs_log("Trying to login as %s", username);
-		sp_session_login(session, username, password, 1, blob);
+		spfs_log("trying to login as %s", username);
+		sp_session_login(g_spotify_session, username, password, 1, blob);
 	}
-
 	return 0;
-
 }
+
 static void spotify_log_message(sp_session *session, const char *message) {
 	spfs_log("spotify: %s", message);
 }
@@ -66,10 +66,8 @@ static sp_session_callbacks spotify_callbacks = {
 	.log_message = spotify_log_message,
 };
 
-int spotify_session_init(const char *username, const char *password,
-		const char *blob)
+void spotify_session_init(const char *username, const char *password, const char *blob)
 {
-	int s = 0;
 	extern const uint8_t g_appkey[];
 	extern const size_t g_appkey_size;
 	sp_session_config config;
@@ -88,17 +86,24 @@ int spotify_session_init(const char *username, const char *password,
 	if ( error != SP_ERROR_OK ) {
 		spfs_log("failed to create session: %s",
 				sp_error_message(error));
-		return 2;
+		exit(1);
 	}
+	g_spotify_session = session;
 	spfs_log("spotify session created!");
-	if(spotify_login(session, username, password, blob) == 0) {
-		g_spotify_session = session;
-	}
-	else {
+	if(spotify_login(username, password, blob) != 0)
 		spfs_log("login failed!");
-		return 1;
-	}
 
+}
+
+void spotify_session_destroy()
+{
+	free(g_spotify_session);
+	g_spotify_session = NULL;
+}
+
+void spotify_threads_init()
+{
+	int s = 0;
 	s = pthread_mutex_init(&spotify_mutex, NULL);
 	if ( s != 0) {
 		handle_error_en(s, "pthread_mutex_init");
@@ -109,7 +114,21 @@ int spotify_session_init(const char *username, const char *password,
 	if ( s != 0) {
 		handle_error_en(s, "pthread_create");
 	}
-	return 0;
+}
+
+void spotify_threads_destroy()
+{
+	int s = 0;
+	s = pthread_cancel(spotify_thread);
+	if ( s != 0) {
+		handle_error_en(s, "pthread_cancel");
+	}
+	s = pthread_join(spotify_thread, NULL);
+	if ( s != 0) {
+		handle_error_en(s, "pthread_cancel");
+	}
+	spotify_thread = -1;
+
 }
 
 

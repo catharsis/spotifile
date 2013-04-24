@@ -1,27 +1,32 @@
-from nose import with_setup
-import os
+from nose import with_setup, run as noserun
+from nose.tools import *
+import unittest
+import os, sys, time
 from os import path
-from subprocess import check_call
+from subprocess import call, check_call
 from sh import ls, cat
 
 
 mountpoint = '/tmp/spotifile_test_mount'
 
-def fs_mount():
-	if not path.exists(mountpoint):
-		os.mkdir(mountpoint)
-	check_call(['./spotifile', mountpoint])
+class SpotifileTest(unittest.TestCase):
+	def test_ls( self ):
+		assert_true('connection' in ls(mountpoint))
 
-def fs_unmount():
-	check_call(['fusermount', '-u', mountpoint])
-	if path.exists(mountpoint):
-		os.rmdir(mountpoint)
+	def test_cat_connection( self ):
+		assert_equal('logged in', cat(path.join(mountpoint, 'connection')))
 
-@with_setup(fs_mount, fs_unmount)
-def test_ls():
-	assert 'connection' in ls(mountpoint)
+	@classmethod
+	def teardownClass(cls):
+		check_call(['fusermount', '-u', mountpoint])
+		if path.exists(mountpoint):
+			os.rmdir(mountpoint)
 
-@with_setup(fs_mount, fs_unmount)
-def test_cat_connection():
-	assert 'logged in' in cat(path.join(mountpoint, 'connection'))
+	@classmethod
+	def setupClass(cls):
+		if not path.exists(mountpoint):
+			os.mkdir(mountpoint)
+		username = input()
+		check_call(['./spotifile', '-o', 'username=%s' % username, mountpoint])
+		time.sleep(1) #give it some time
 

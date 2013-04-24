@@ -5,13 +5,9 @@
 #include <errno.h>
 #include <stdarg.h>
 #include "spotify-fs.h"
-struct spotify_credentials {
-	char *username;
-	char *password;
-};
-
 struct spotifile_config {
 	char *spotify_username;
+	char *spotify_password;
 	bool remember_me;
 };
 
@@ -26,6 +22,7 @@ FILE *logfile;
 
 static struct fuse_opt spfs_opts[] = {
 	SPFS_OPT("username=%s",		spotify_username, 0),
+	SPFS_OPT("password=%s",		spotify_password, 0),
 	SPFS_OPT("--rememberme=true",	remember_me, 1),
 	SPFS_OPT("--rememberme=false",	remember_me, 0),
 	FUSE_OPT_KEY("-V",			KEY_VERSION),
@@ -49,6 +46,7 @@ static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_ar
 					"\n"
 					"spotifile options:\n"
 					"		-o username=STRING\n"
+					"		-o password=STRING\n"
 					"		--rememberme=BOOL\n"
 					, outargs->argv[0]);
 			exit(1);
@@ -103,12 +101,10 @@ void spfs_log_errno(const char *topic) {
 void *spfs_init(struct fuse_conn_info *conn)
 {
 	struct fuse_context *context = fuse_get_context();
+	struct spotifile_config *conf= (struct spotifile_config *) context->private_data;
 	spfs_log("%s initialising ...", application_name);
-	struct spotify_credentials *credentials = (struct spotify_credentials *)context->private_data;
-	/* should we do something about this, really?
-	 * Maybe put error logging here instead of in
-	 * spotify_session_init()*/
-	(void) spotify_session_init(credentials->username, credentials->password, NULL);
+	spotify_session_init(conf->spotify_username, conf->spotify_password, NULL);
+	spotify_threads_init();
 	spfs_log("%s initialised", application_name);
 	return NULL;
 
@@ -116,31 +112,11 @@ void *spfs_init(struct fuse_conn_info *conn)
 
 void spfs_destroy(void *init_retval)
 {
+	spotify_threads_destroy();
+	spotify_session_destroy();
 	spfs_log("%s destroyed", application_name);
 	spfs_log_close();
 	pthread_exit(NULL);
-}
-
-struct spotify_credentials *request_credentials()
-{
-	struct spotify_credentials *credentials = malloc(sizeof(struct spotify_credentials));
-	credentials->username = malloc(SPOTIFY_USERNAME_MAXLEN);
-
-	printf("spotify username: ");
-	credentials->username = fgets(credentials->username, SPOTIFY_USERNAME_MAXLEN, stdin);
-	if (credentials->username != NULL) {
-		long username_len = strlen(credentials->username);
-		if(username_len > 0 && credentials->username[username_len-1] == '\n') {
-			credentials->username[username_len-1] = '\0';
-		}
-	}
-
-	credentials->password = getpass("spotify password: ");
-	if (strlen(credentials->password) <= 0)
-	{
-		credentials->password = NULL;
-	}
-	return credentials;
 }
 
 int main(int argc, char *argv[])
@@ -148,7 +124,6 @@ int main(int argc, char *argv[])
 	int retval = 0;
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 	struct spotifile_config conf;
-	struct spotify_credentials *credentials = NULL;
 	memset(&conf, 0, sizeof(conf));
 	if ((getuid() == 0) || (geteuid() == 0)) {
 		fprintf(stderr, "Running %s as root is not a good idea\n", application_name);
@@ -156,11 +131,16 @@ int main(int argc, char *argv[])
 	}
 
 	fuse_opt_parse(&args, &conf, spfs_opts, spfs_opt_process);
-	credentials = request_credentials();
+
 	spfs_log_init("./spotifile.log");
+	if (!conf.spotify_password)
+	{
+		if((conf.spotify_password = getpass("spotify password:")) == NULL)
+			handle_error("getpass");
+	}
 	spfs_operations.init = spfs_init;
 	spfs_operations.destroy = spfs_destroy;
-	retval = fuse_main(argc, argv, &spfs_operations, credentials);
+	retval = fuse_main(args.argc, args.argv, &spfs_operations, &conf);
 	if (retval != 0) {
 		fprintf(stderr, "Error initialising spotifile\n");
 	}

@@ -36,7 +36,10 @@ extern time_t g_logged_in_at;
 
 
 /*spotify stuff*/
-int spotify_session_init(const char *username, const char *password, const char *blob);
+void spotify_session_init(const char *username, const char *password, const char *blob);
+void spotify_session_destroy();
+void spotify_threads_init();
+void spotify_threads_destroy();
 char * spotify_connectionstate_str();
 
 /* fuse stuff */
