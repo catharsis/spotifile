@@ -1,10 +1,10 @@
 #include "spotify-fs.h"
 #include <string.h>
 #include <errno.h>
+extern time_t g_logged_in_at;
 int spfs_getattr(const char *path, struct stat *statbuf)
 {
 	int res = 0;
-	extern time_t g_logged_in_at;
 	memset(statbuf, 0, sizeof(struct stat));
 	if(strcmp(path, "/") == 0) {
 		statbuf->st_mode = S_IFDIR | 0755;

@@ -32,8 +32,6 @@ void spfs_log_errno(const char *topic);
 
 
 static const char application_name[] = "spotifile";
-extern time_t g_logged_in_at;
-
 
 /*spotify stuff*/
 void spotify_session_init(const char *username, const char *password, const char *blob);
