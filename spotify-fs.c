@@ -116,7 +116,6 @@ void spfs_destroy(void *init_retval)
 	spotify_session_destroy();
 	spfs_log("%s destroyed", application_name);
 	spfs_log_close();
-	pthread_exit(NULL);
 }
 
 int main(int argc, char *argv[])
@@ -133,7 +132,7 @@ int main(int argc, char *argv[])
 	fuse_opt_parse(&args, &conf, spfs_opts, spfs_opt_process);
 
 	spfs_log_init("./spotifile.log");
-	if (!conf.spotify_password)
+	if (conf.spotify_username != NULL && !conf.spotify_password)
 	{
 		if((conf.spotify_password = getpass("spotify password:")) == NULL)
 			handle_error("getpass");

@@ -128,7 +128,6 @@ void spotify_threads_destroy()
 		handle_error_en(s, "pthread_cancel");
 	}
 	spotify_thread = -1;
-
 }
 
 
@@ -177,6 +176,7 @@ void * spotify_thread_start_routine(void *arg) {
 	sp_error err;
 	spfs_log("spotify session processing thread started");
 	for(;;) {
+		pthread_testcancel();
 		MUTEX_LOCK(ret, &spotify_mutex);
 		err = sp_session_process_events(g_spotify_session, &event_timeout);
 		MUTEX_UNLOCK(ret, &spotify_mutex);
