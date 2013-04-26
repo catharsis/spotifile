@@ -12,14 +12,14 @@ struct spfs_file {
 	size_t (*spfs_file_read)(char *, size_t, off_t);
 };
 
-static struct spfs_file spfs_files[] = {
-	{ /*connection file*/
+static struct spfs_file *spfs_files[] = {
+	&(struct spfs_file){ /*connection file*/
 		.abs_path = "/connection",
 		.spfs_file_getattr = connection_file_getattr,
 		.spfs_file_read = connection_file_read
 	},
 	/*SENTINEL*/
-	{NULL},
+	NULL,
 };
 
 int spfs_getattr(const char *path, struct stat *statbuf)
@@ -33,7 +33,7 @@ int spfs_getattr(const char *path, struct stat *statbuf)
 		return 0;
 	}
 	else {
-		while ((tmpfile = &spfs_files[i++])) {
+		while ((tmpfile = spfs_files[i++])) {
 			if (strcmp(tmpfile->abs_path, path) == 0) {
 				tmpfile->spfs_file_getattr(statbuf);
 				return 0;
@@ -72,7 +72,7 @@ int spfs_read(const char *path, char *buf, size_t size, off_t offset,
 {
 	int i = 0;
 	struct spfs_file *tmpfile;
-	while((tmpfile = &spfs_files[i++]) != NULL)
+	while((tmpfile = spfs_files[i++]) != NULL)
 	{
 		if (strcmp(tmpfile->abs_path, path) == 0)
 			return tmpfile->spfs_file_read(buf, size, offset);
