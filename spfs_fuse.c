@@ -1,14 +1,19 @@
 #include "spotify-fs.h"
 #include <string.h>
 #include <errno.h>
+#include <stdbool.h>
+#include <libgen.h>
 extern time_t g_logged_in_at;
 
+
+/* functional files - forward function declarations */
 size_t connection_file_read(char *buf, size_t size, off_t offset);
-void connection_file_getattr(struct stat *statbuf);
+bool connection_file_getattr(const char *path, struct stat *statbuf);
+bool artists_file_getattr(const char *path, struct stat *statbuf);
 
 struct spfs_file {
 	char *abs_path;
-	void (*spfs_file_getattr)(struct stat *);
+	bool (*spfs_file_getattr)(const char *, struct stat *);
 	size_t (*spfs_file_read)(char *, size_t, off_t);
 };
 
@@ -17,6 +22,11 @@ static struct spfs_file *spfs_files[] = {
 		.abs_path = "/connection",
 		.spfs_file_getattr = connection_file_getattr,
 		.spfs_file_read = connection_file_read
+	},
+	&(struct spfs_file){ /*artists*/
+		.abs_path = "/artists",
+		.spfs_file_getattr = artists_file_getattr,
+		.spfs_file_read = NULL
 	},
 	/*SENTINEL*/
 	NULL,
@@ -34,21 +44,55 @@ int spfs_getattr(const char *path, struct stat *statbuf)
 	}
 	else {
 		while ((tmpfile = spfs_files[i++])) {
-			if (strcmp(tmpfile->abs_path, path) == 0) {
-				tmpfile->spfs_file_getattr(statbuf);
-				return 0;
+			if (strncmp(tmpfile->abs_path, path, strlen(tmpfile->abs_path)) == 0) {
+				if (tmpfile->spfs_file_getattr(path, statbuf)) {
+					return 0;
+				}
 			}
 		}
 	}
 	return -ENOENT;
 }
 
-void connection_file_getattr(struct stat *statbuf)
+bool connection_file_getattr(const char* path, struct stat *statbuf)
 {
-	statbuf->st_mode = S_IFREG | 0444;
-	statbuf->st_nlink = 1;
-	statbuf->st_size = 64;
-	statbuf->st_mtime = g_logged_in_at;
+	if (strcmp("/connection", path) != 0) {
+		return false;
+	}
+	else {
+		statbuf->st_mode = S_IFREG | 0444;
+		statbuf->st_nlink = 1;
+		statbuf->st_size = 64;
+		statbuf->st_mtime = g_logged_in_at;
+		return true;
+	}
+}
+
+bool artists_file_getattr(const char *path, struct stat *statbuf)
+{
+	char *basename_path_copy = strdup(path);
+	char *dirname_path_copy = strdup(path);
+
+	char *artist = NULL;
+	bool ret = true;
+	if (strcmp("/artists", path) == 0) {
+		/*artists root*/
+		statbuf->st_mode = S_IFDIR | 0755;
+	}
+	else if (strcmp(dirname(dirname_path_copy), "/artists") == 0)
+	{
+		/*artist query */
+		artist = basename(basename_path_copy);
+		spfs_log("artist query: %s", artist);
+		statbuf->st_mode = S_IFDIR | 0755;
+	}
+	else {
+		/*we're deeper than expected, ignore call*/
+		ret = false;
+	}
+	free(dirname_path_copy);
+	free(basename_path_copy);
+	return ret;
 }
 
 size_t connection_file_read(char *buf, size_t size, off_t offset) {
@@ -84,13 +128,17 @@ int spfs_read(const char *path, char *buf, size_t size, off_t offset,
 int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi)
 {
-	if (strcmp(path, "/") != 0)
-		return -ENOENT;
-
-	filler(buf, ".", NULL, 0);
-	filler(buf, "..", NULL, 0);
-	filler(buf, "connection", NULL, 0);
-	return 0;
+	/*TODO: remove the hardcoding of paths, parse
+	 * spfs_files instead*/
+	if (strcmp(path, "/") == 0)
+	{
+		filler(buf, ".", NULL, 0);
+		filler(buf, "..", NULL, 0);
+		filler(buf, "connection", NULL, 0);
+		filler(buf, "artists", NULL, 0);
+		return 0;
+	}
+	return -ENOENT;
 }
 
 struct fuse_operations spfs_operations = {
