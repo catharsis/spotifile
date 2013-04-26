@@ -6,10 +6,15 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
-sp_session *g_spotify_session;
 time_t g_logged_in_at = (time_t) -1;
-pthread_mutex_t spotify_mutex;
-pthread_t spotify_thread;
+
+/* thread globals */
+static sp_session *g_spotify_session;
+static bool g_main_thread_do_notify = false;
+static pthread_mutex_t g_spotify_mutex;
+static pthread_mutex_t g_spotify_notify_mutex;
+static pthread_cond_t g_spotify_notify_cond;
+static pthread_t spotify_thread;
 
 /*foward declarations*/
 void * spotify_thread_start_routine(void *arg);
@@ -44,13 +49,11 @@ static void spotify_logged_out(sp_session *session) {
 
 static void spotify_logged_in(sp_session *session, sp_error error)
 {
-	/* TODO: might be we want to keep this information available
-	 * to users through some file so that they don't have to sift
-	 * through the logs?*/
-	spfs_log("spotify login: %s", sp_error_message(error));
 	if(SP_ERROR_OK == error) {
 		time(&g_logged_in_at);
 		spfs_log("logged in successfully at %d", g_logged_in_at);
+	} else {
+		spfs_log("spotify login: %s", sp_error_message(error));
 	}
 }
 
@@ -59,7 +62,18 @@ static void spotify_connection_error(sp_session *session, sp_error error)
 	spfs_log("Connection error %d: %s\n", error, sp_error_message(error));
 }
 
+static void spotify_notify_main_thread(sp_session *session)
+{
+	int ret = 0;
+	MUTEX_LOCK(ret, &g_spotify_notify_mutex);
+	g_main_thread_do_notify = true;
+	(void) pthread_cond_signal(&g_spotify_notify_cond);
+	MUTEX_UNLOCK(ret, &g_spotify_notify_mutex);
+
+}
+
 static sp_session_callbacks spotify_callbacks = {
+	.notify_main_thread = spotify_notify_main_thread,
 	.logged_in = spotify_logged_in,
 	.connection_error = spotify_connection_error,
 	.logged_out = spotify_logged_out,
@@ -99,16 +113,26 @@ void spotify_session_destroy()
 {
 	free(g_spotify_session);
 	g_spotify_session = NULL;
+	spfs_log("session destroyed");
 }
 
 void spotify_threads_init()
 {
 	int s = 0;
-	s = pthread_mutex_init(&spotify_mutex, NULL);
+	s = pthread_mutex_init(&g_spotify_mutex, NULL);
 	if ( s != 0) {
 		handle_error_en(s, "pthread_mutex_init");
 	}
 
+	s = pthread_mutex_init(&g_spotify_notify_mutex, NULL);
+	if ( s != 0) {
+		handle_error_en(s, "pthread_mutex_init");
+	}
+
+	s = pthread_cond_init(&g_spotify_notify_cond, NULL);
+	if ( s != 0) {
+		handle_error_en(s, "pthread_mutex_init");
+	}
 	s = pthread_create(&spotify_thread, NULL,
 			spotify_thread_start_routine, (void *)NULL);
 	if ( s != 0) {
@@ -123,11 +147,13 @@ void spotify_threads_destroy()
 	if ( s != 0) {
 		handle_error_en(s, "pthread_cancel");
 	}
+	spfs_log("spotify thread cancel request sent");
 	s = pthread_join(spotify_thread, NULL);
 	if ( s != 0) {
 		handle_error_en(s, "pthread_cancel");
 	}
 	spotify_thread = -1;
+	spfs_log("spotify threads destroyed");
 }
 
 
@@ -136,9 +162,9 @@ sp_connectionstate spotify_connectionstate() {
 	int ret = 0;
 	sp_connectionstate s;
 
-	MUTEX_LOCK(ret, &spotify_mutex);
+	MUTEX_LOCK(ret, &g_spotify_mutex);
 	s = sp_session_connectionstate(g_spotify_session);
-	MUTEX_UNLOCK(ret, &spotify_mutex);
+	MUTEX_UNLOCK(ret, &g_spotify_mutex);
 
 	return s;
 }
@@ -175,15 +201,24 @@ void * spotify_thread_start_routine(void *arg) {
 	int event_timeout = 0, ret = 0;
 	sp_error err;
 	spfs_log("spotify session processing thread started");
+	MUTEX_LOCK(ret, &g_spotify_notify_mutex);
 	for(;;) {
-		pthread_testcancel();
-		MUTEX_LOCK(ret, &spotify_mutex);
-		err = sp_session_process_events(g_spotify_session, &event_timeout);
-		MUTEX_UNLOCK(ret, &spotify_mutex);
-		if (err != SP_ERROR_OK) {
-			spfs_log("Could not process events (%d): %s\n", err, sp_error_message(err));
+		while (!g_main_thread_do_notify) {
+			pthread_cond_wait(&g_spotify_notify_cond, &g_spotify_notify_mutex);
+			spfs_log("done waiting on cond");
 		}
-		usleep(event_timeout);
+		MUTEX_UNLOCK(ret, &g_spotify_notify_mutex);
+		g_main_thread_do_notify = false;
+
+		do {
+			MUTEX_LOCK(ret, &g_spotify_mutex);
+			err = sp_session_process_events(g_spotify_session, &event_timeout);
+			MUTEX_UNLOCK(ret, &g_spotify_mutex);
+			if (err != SP_ERROR_OK) {
+				spfs_log("Could not process events (%d): %s\n", err, sp_error_message(err));
+			}
+		} while (event_timeout == 0);
+		MUTEX_LOCK(ret, &g_spotify_notify_mutex);
 	}
 	spfs_log("spotify session processing thread ended");
 	return (void *)NULL;
