@@ -205,7 +205,6 @@ void * spotify_thread_start_routine(void *arg) {
 	for(;;) {
 		while (!g_main_thread_do_notify) {
 			pthread_cond_wait(&g_spotify_notify_cond, &g_spotify_notify_mutex);
-			spfs_log("done waiting on cond");
 		}
 		MUTEX_UNLOCK(ret, &g_spotify_notify_mutex);
 		g_main_thread_do_notify = false;
