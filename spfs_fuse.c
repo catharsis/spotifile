@@ -70,10 +70,8 @@ bool connection_file_getattr(const char* path, struct stat *statbuf)
 
 bool artists_file_getattr(const char *path, struct stat *statbuf)
 {
-	char *basename_path_copy = strdup(path);
 	char *dirname_path_copy = strdup(path);
 
-	char *artist = NULL;
 	bool ret = true;
 	if (strcmp("/artists", path) == 0) {
 		/*artists root*/
@@ -82,16 +80,18 @@ bool artists_file_getattr(const char *path, struct stat *statbuf)
 	else if (strcmp(dirname(dirname_path_copy), "/artists") == 0)
 	{
 		/*artist query */
-		artist = basename(basename_path_copy);
-		spfs_log("artist query: %s", artist);
+		/* here we set up a directory, which if changed into will generate
+		 * a query for artists matching the directory name.
+		 * We defer the actual query, since executing it here might impact
+		 * performance due to shell tab completion, and other stat'ing shell extensions*/
 		statbuf->st_mode = S_IFDIR | 0755;
+		statbuf->st_mtime = time(NULL);
 	}
 	else {
 		/*we're deeper than expected, ignore call*/
 		ret = false;
 	}
 	free(dirname_path_copy);
-	free(basename_path_copy);
 	return ret;
 }
 
@@ -130,15 +130,27 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 {
 	/*TODO: remove the hardcoding of paths, parse
 	 * spfs_files instead*/
+	char *dirname_path_copy = strdup(path);
+	char *basename_path_copy = strdup(path);
+	char *artist = NULL;
+	int ret = 0;
 	if (strcmp(path, "/") == 0)
 	{
 		filler(buf, ".", NULL, 0);
 		filler(buf, "..", NULL, 0);
 		filler(buf, "connection", NULL, 0);
 		filler(buf, "artists", NULL, 0);
-		return 0;
 	}
-	return -ENOENT;
+	else if (strcmp(dirname(dirname_path_copy), "/artists") == 0) {
+		/*artist query*/
+		artist = basename(basename_path_copy);
+
+	}
+	else
+		ret = -ENOENT;
+	free(dirname_path_copy);
+	free(basename_path_copy);
+	return ret;
 }
 
 struct fuse_operations spfs_operations = {
