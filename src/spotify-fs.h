@@ -39,6 +39,8 @@ void spotify_session_destroy();
 void spotify_threads_init();
 void spotify_threads_destroy();
 char * spotify_connectionstate_str();
+char ** spotify_artist_search(char *query);
+void spotify_artist_search_destroy(char **artists);
 
 /* fuse stuff */
 struct fuse_operations spfs_operations;

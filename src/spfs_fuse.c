@@ -91,7 +91,6 @@ bool artists_file_getattr(const char *path, struct stat *statbuf)
 		/*we're deeper than expected, ignore call*/
 		ret = false;
 	}
-	free(dirname_path_copy);
 	return ret;
 }
 
@@ -133,7 +132,8 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	char *dirname_path_copy = strdup(path);
 	char *basename_path_copy = strdup(path);
 	char *artist = NULL;
-	int ret = 0;
+	char **artists;
+	int ret = 0, i;
 	if (strcmp(path, "/") == 0)
 	{
 		filler(buf, ".", NULL, 0);
@@ -143,13 +143,23 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	}
 	else if (strcmp(dirname(dirname_path_copy), "/artists") == 0) {
 		/*artist query*/
-		artist = basename(basename_path_copy);
+		filler(buf, ".", NULL, 0);
+		filler(buf, "..", NULL, 0);
+		artist = strdup(basename(basename_path_copy));
+		spfs_log("querying for artist: %s", artist);
+		artists = spotify_artist_search(artist);
+		if (artists != NULL) {
+			spfs_log("walking result");
+			while (artists[i++] != NULL)
+				filler(buf, artists[i], NULL, 0);
+		}
+		spotify_artist_search_destroy(artists);
+		free(artist);
 
 	}
 	else
 		ret = -ENOENT;
-	free(dirname_path_copy);
-	free(basename_path_copy);
+	spfs_log("exit readdir");
 	return ret;
 }
 

@@ -196,6 +196,52 @@ char * spotify_connectionstate_str() {
 
 	return str;
 }
+
+char ** spotify_artist_search(char *query) {
+	int ret = 0, i = 0, num_artists = 0;
+	sp_search *search_result = NULL;
+	sp_artist *artist = NULL;
+	char **artists = NULL;
+	spfs_log("initiating query");
+	if (!query || g_logged_in_at < 0)
+		return NULL;
+	MUTEX_LOCK(ret, &g_spotify_mutex);
+	search_result = sp_search_create(g_spotify_session, query, 0, 0, 0, 0, 0, 100, 0, 0, SP_SEARCH_STANDARD, NULL, NULL);
+	sp_search_add_ref(search_result);
+	spfs_log("search created");
+	num_artists = sp_search_num_artists(search_result);
+	spfs_log("Found %d artists", num_artists);
+	if (num_artists > 0) {
+		artists = calloc(num_artists+1, sizeof(char*));
+		if (!artists) {
+			handle_error("calloc");
+		}
+
+		for (i = 0; i < num_artists; i++) {
+			artist = sp_search_artist(search_result, i);
+			artists[i] = strdup(sp_artist_name(artist));
+			spfs_log("Found artist: %s", artists[i]);
+		}
+		artists[++i] = NULL;
+	}
+	sp_search_release(search_result);
+	MUTEX_UNLOCK(ret, &g_spotify_mutex);
+	return artists;
+}
+
+void spotify_artist_search_destroy(char **artists) {
+	int i = 0;
+	if (!artists) return;
+
+	while (artists[i] != NULL) {
+		free(artists[i]);
+		artists[i] = NULL;
+		i++;
+	}
+	free(artists);
+	artists = NULL;
+}
+
 /*thread routine*/
 void * spotify_thread_start_routine(void *arg) {
 	int event_timeout = 0, ret = 0;
