@@ -152,13 +152,13 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 			spfs_log("walking result");
 			while (artists[i++] != NULL)
 				filler(buf, artists[i], NULL, 0);
+			spotify_artist_search_destroy(artists);
 		}
-		spotify_artist_search_destroy(artists);
 		free(artist);
-
 	}
 	else
 		ret = -ENOENT;
+
 	spfs_log("exit readdir");
 	return ret;
 }
