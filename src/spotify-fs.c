@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <assert.h>
 #include "spotify-fs.h"
 struct spotifile_config {
 	char *spotify_username;
@@ -17,6 +18,7 @@ enum {
 };
 
 FILE *logfile;
+static pthread_mutex_t g_logmutex;
 
 #define SPFS_OPT(t, p, v) {t, offsetof(struct spotifile_config, p), v }
 
@@ -58,7 +60,13 @@ static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_ar
 }
 void spfs_log_init(const char *log_path)
 {
-	logfile = fopen("spotifile.log", "w");
+	int s = 0;
+	s = pthread_mutex_init(&g_logmutex, NULL);
+	if ( s != 0 ) {
+		handle_error_en(s, "pthread_mutex_init");
+	}
+
+	logfile = fopen(log_path, "w");
 	if (logfile == NULL) {
 		handle_error("fopen");
 	}
@@ -73,19 +81,14 @@ void spfs_log_close()
 /*thread safe, but non-reentrant */
 void spfs_log(const char *format, ...)
 {
-	static pthread_mutex_t logmutex = PTHREAD_MUTEX_INITIALIZER;
-	char *lformat = strdup(format);
-	lformat = realloc(lformat, strlen(format) + 1);
-	strncat(lformat, "\n", strlen(format) + 1);
+	pthread_mutex_lock(&g_logmutex);
 	va_list ap;
-	int ret = 0;
 	va_start(ap, format);
-	MUTEX_LOCK(ret, &logmutex);
-	vfprintf(logfile, lformat, ap);
+	vfprintf(logfile, format, ap);
+	fprintf(logfile, "\n");
 	fflush(logfile);
-	MUTEX_UNLOCK(ret, &logmutex);
 	va_end(ap);
-	free(lformat);
+	pthread_mutex_unlock(&g_logmutex);
 }
 
 void spfs_log_errno(const char *topic) {
@@ -103,6 +106,7 @@ void *spfs_init(struct fuse_conn_info *conn)
 	struct fuse_context *context = fuse_get_context();
 	struct spotifile_config *conf= (struct spotifile_config *) context->private_data;
 	spfs_log("%s initialising ...", application_name);
+	spfs_log("%s running as pid %d", application_name, getpid());
 	spotify_session_init(conf->spotify_username, conf->spotify_password, NULL);
 	spotify_threads_init();
 	spfs_log("%s initialised", application_name);
@@ -123,15 +127,15 @@ int main(int argc, char *argv[])
 	int retval = 0;
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 	struct spotifile_config conf;
+	char *logfile = "./spotifile.log";
 	memset(&conf, 0, sizeof(conf));
 	if ((getuid() == 0) || (geteuid() == 0)) {
 		fprintf(stderr, "Running %s as root is not a good idea\n", application_name);
 		return 1;
 	}
-
 	fuse_opt_parse(&args, &conf, spfs_opts, spfs_opt_process);
 
-	spfs_log_init("./spotifile.log");
+	spfs_log_init(logfile);
 	if (conf.spotify_username != NULL && !conf.spotify_password)
 	{
 		if((conf.spotify_password = getpass("spotify password:")) == NULL)
