@@ -203,8 +203,13 @@ char ** spotify_artist_search(char *query) {
 	sp_artist *artist = NULL;
 	char **artists = NULL;
 	spfs_log("initiating query");
-	if (!query || g_logged_in_at < 0)
+	if (!query) {
 		return NULL;
+	}
+	if (g_logged_in_at < 0) {
+		spfs_log("Not logged in, won't search for artist %s", query);
+		return NULL;
+	}
 	MUTEX_LOCK(ret, &g_spotify_mutex);
 	search_result = sp_search_create(g_spotify_session, query, 0, 0, 0, 0, 0, 100, 0, 0, SP_SEARCH_STANDARD, NULL, NULL);
 	sp_search_add_ref(search_result);
