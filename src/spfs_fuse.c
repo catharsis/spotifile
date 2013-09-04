@@ -133,7 +133,7 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	char *basename_path_copy = strdup(path);
 	char *artist = NULL;
 	char **artists;
-	int ret = 0, i;
+	int ret = 0, i = 0;
 	if (strcmp(path, "/") == 0)
 	{
 		filler(buf, ".", NULL, 0);
@@ -141,25 +141,31 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 		filler(buf, "connection", NULL, 0);
 		filler(buf, "artists", NULL, 0);
 	}
-	else if (strcmp(dirname(dirname_path_copy), "/artists") == 0) {
-		/*artist query*/
+	else if (strcmp(path, "/artists") == 0) {
 		filler(buf, ".", NULL, 0);
 		filler(buf, "..", NULL, 0);
+	}
+	else if (strcmp(dirname(dirname_path_copy), "/artists") == 0) {
+		/*artist query*/
 		artist = strdup(basename(basename_path_copy));
 		spfs_log("querying for artist: %s", artist);
 		artists = spotify_artist_search(artist);
 		if (artists != NULL) {
 			spfs_log("walking result");
-			while (artists[i++] != NULL)
+			while (artists[i]) {
 				filler(buf, artists[i], NULL, 0);
+				++i;
+			}
 			spotify_artist_search_destroy(artists);
 		}
-		free(artist);
+		else {
+			ret = -ENOENT;
+		}
 	}
 	else
 		ret = -ENOENT;
 
-	spfs_log("exit readdir");
+	spfs_log("exit readdir for path %s ( parts: %s, %s)", path, dirname_path_copy, basename_path_copy);
 	return ret;
 }
 

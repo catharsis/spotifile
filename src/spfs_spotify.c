@@ -62,6 +62,11 @@ static void spotify_connection_error(sp_session *session, sp_error error)
 	spfs_log("Connection error %d: %s\n", error, sp_error_message(error));
 }
 
+static void artist_search_complete_cb(sp_search *result, void *userdata)
+{
+	spfs_log("Artist search complete!");
+}
+
 static void spotify_notify_main_thread(sp_session *session)
 {
 	int ret = 0;
@@ -199,7 +204,7 @@ char * spotify_connectionstate_str() {
 
 char ** spotify_artist_search(char *query) {
 	int ret = 0, i = 0, num_artists = 0;
-	sp_search *search_result = NULL;
+	sp_search *search = NULL;
 	sp_artist *artist = NULL;
 	char **artists = NULL;
 	spfs_log("initiating query");
@@ -211,10 +216,12 @@ char ** spotify_artist_search(char *query) {
 		return NULL;
 	}
 	MUTEX_LOCK(ret, &g_spotify_mutex);
-	search_result = sp_search_create(g_spotify_session, query, 0, 0, 0, 0, 0, 100, 0, 0, SP_SEARCH_STANDARD, NULL, NULL);
-	sp_search_add_ref(search_result);
-	spfs_log("search created");
-	num_artists = sp_search_num_artists(search_result);
+	search = sp_search_create(g_spotify_session, query, 0, 0, 0, 0, 0, 100, 0, 0, SP_SEARCH_STANDARD, artist_search_complete_cb, NULL);
+	spfs_log("search created, waiting on load");
+	MUTEX_UNLOCK(ret, &g_spotify_mutex);
+	/*FIXME: pthread_cond_wait ? */
+	while (!sp_search_is_loaded(search));
+	num_artists = sp_search_num_artists(search);
 	spfs_log("Found %d artists", num_artists);
 	if (num_artists > 0) {
 		artists = calloc(num_artists+1, sizeof(char*));
@@ -223,14 +230,13 @@ char ** spotify_artist_search(char *query) {
 		}
 
 		for (i = 0; i < num_artists; i++) {
-			artist = sp_search_artist(search_result, i);
+			artist = sp_search_artist(search, i);
 			artists[i] = strdup(sp_artist_name(artist));
 			spfs_log("Found artist: %s", artists[i]);
 		}
 		artists[++i] = NULL;
 	}
-	sp_search_release(search_result);
-	MUTEX_UNLOCK(ret, &g_spotify_mutex);
+	sp_search_release(search);
 	return artists;
 }
 
@@ -257,13 +263,10 @@ void * spotify_thread_start_routine(void *arg) {
 		while (!g_main_thread_do_notify) {
 			pthread_cond_wait(&g_spotify_notify_cond, &g_spotify_notify_mutex);
 		}
-		MUTEX_UNLOCK(ret, &g_spotify_notify_mutex);
 		g_main_thread_do_notify = false;
 
 		do {
-			MUTEX_LOCK(ret, &g_spotify_mutex);
 			err = sp_session_process_events(g_spotify_session, &event_timeout);
-			MUTEX_UNLOCK(ret, &g_spotify_mutex);
 			if (err != SP_ERROR_OK) {
 				spfs_log("Could not process events (%d): %s\n", err, sp_error_message(err));
 			}

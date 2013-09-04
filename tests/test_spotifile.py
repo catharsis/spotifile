@@ -8,7 +8,7 @@ from sh import ls, cat
 
 
 mountpoint = '/tmp/spotifile_test_mount'
-
+logfile =
 class SpotifileTest(unittest.TestCase):
 	def test_ls( self ):
 		assert_true('connection' in ls(mountpoint))
@@ -16,9 +16,12 @@ class SpotifileTest(unittest.TestCase):
 	def test_cat_connection( self ):
 		assert_equal('logged in', cat(path.join(mountpoint, 'connection')))
 
+	def test_ls_artists( self ):
+		assert_equal(['Refused'], ls(path.join(mountpoint, 'artists', 'refused')))
 	@classmethod
 	def teardownClass(cls):
 		check_call(['fusermount', '-u', mountpoint])
+
 		if path.exists(mountpoint):
 			os.rmdir(mountpoint)
 
