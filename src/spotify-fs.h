@@ -2,21 +2,17 @@
 #define CONN_STATE_SIZE 128
 #define SPOTIFY_USERNAME_MAXLEN 128
 #define SPOTIFILE_VERSION "v0.0.1"
-#include <libspotify/api.h>
 #include <fuse.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
 #include <pthread.h>
 
-void spfs_log(const char *format, ...);
-void spfs_log_errno(const char *topic);
-
 #define handle_error_en(en, msg) \
-	do { errno = en; spfs_log_errno(msg); exit(EXIT_FAILURE); } while(0)
+	do { errno = en; g_error("%s (%s)", msg, strerror(errno));} while(0)
 
 #define handle_error(msg) \
-	do { spfs_log_errno(msg); exit(EXIT_FAILURE); } while(0)
+	do { g_error(msg); } while(0)
 
 #define MUTEX_LOCK(mx_lock_ret, m) \
 	do { \
@@ -32,15 +28,5 @@ void spfs_log_errno(const char *topic);
 
 
 static const char application_name[] = "spotifile";
-
-/*spotify stuff*/
-void spotify_session_init(const char *username, const char *password, const char *blob);
-void spotify_session_destroy();
-void spotify_threads_init();
-void spotify_threads_destroy();
-char * spotify_connectionstate_str();
-char ** spotify_artist_search(char *query);
-void spotify_artist_search_destroy(char **artists);
-
 /* fuse stuff */
 struct fuse_operations spfs_operations;

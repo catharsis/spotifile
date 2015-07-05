@@ -4,7 +4,9 @@
 #include <pthread.h>
 #include <errno.h>
 #include <stdarg.h>
-#include <assert.h>
+#include <glib.h>
+#include <libspotify/api.h>
+#include "spfs_spotify.h"
 #include "spotify-fs.h"
 struct spotifile_config {
 	char *spotify_username;
@@ -16,9 +18,6 @@ enum {
 	KEY_HELP,
 	KEY_VERSION,
 };
-
-FILE *logfile;
-static pthread_mutex_t g_logmutex;
 
 #define SPFS_OPT(t, p, v) {t, offsetof(struct spotifile_config, p), v }
 
@@ -58,68 +57,33 @@ static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_ar
 	}
 	return 1;
 }
-void spfs_log_init(const char *log_path)
-{
-	int s = 0;
-	s = pthread_mutex_init(&g_logmutex, NULL);
-	if ( s != 0 ) {
-		handle_error_en(s, "pthread_mutex_init");
-	}
 
-	logfile = fopen(log_path, "w");
-	if (logfile == NULL) {
-		handle_error("fopen");
-	}
-}
 
-void spfs_log_close()
-{
-	if(fclose(logfile) != 0)
-		handle_error("fclose");
-}
-
-/*thread safe, but non-reentrant */
-void spfs_log(const char *format, ...)
-{
-	pthread_mutex_lock(&g_logmutex);
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(logfile, format, ap);
-	fprintf(logfile, "\n");
-	fflush(logfile);
-	va_end(ap);
-	pthread_mutex_unlock(&g_logmutex);
-}
-
-void spfs_log_errno(const char *topic) {
-	char *local_topic = strdup(topic);
-	char *message = strerror(errno);
-	size_t totlen = 0;
-	totlen = strlen(topic) + strlen(message);
-	local_topic = realloc(local_topic, totlen);
-	strncat(local_topic, message, totlen);
-	spfs_log(local_topic);
-	free(local_topic);
-}
 void *spfs_init(struct fuse_conn_info *conn)
 {
+	sp_session *session = NULL;
 	struct fuse_context *context = fuse_get_context();
 	struct spotifile_config *conf= (struct spotifile_config *) context->private_data;
-	spfs_log("%s initialising ...", application_name);
-	spfs_log("%s running as pid %d", application_name, getpid());
-	spotify_session_init(conf->spotify_username, conf->spotify_password, NULL);
+	g_info("%s initialising ...", application_name);
+	session = spotify_session_init(conf->spotify_username, conf->spotify_password, NULL);
 	spotify_threads_init();
-	spfs_log("%s initialised", application_name);
-	return NULL;
+	g_info("%s initialised", application_name);
+	return session;
 
 }
 
-void spfs_destroy(void *init_retval)
+void spfs_destroy(void *blob)
 {
+	sp_session *session = (sp_session *)blob;
+	spotify_session_destroy(session);
 	spotify_threads_destroy();
-	spotify_session_destroy();
-	spfs_log("%s destroyed", application_name);
-	spfs_log_close();
+	g_info("%s destroyed", application_name);
+}
+
+void spfs_log_handler(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
+	FILE *f = (FILE *)user_data;
+	fprintf(f, "%s\n", message);
+	fflush(f);
 }
 
 int main(int argc, char *argv[])
@@ -127,15 +91,16 @@ int main(int argc, char *argv[])
 	int retval = 0;
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 	struct spotifile_config conf;
-	char *logfile = "./spotifile.log";
 	memset(&conf, 0, sizeof(conf));
 	if ((getuid() == 0) || (geteuid() == 0)) {
 		fprintf(stderr, "Running %s as root is not a good idea\n", application_name);
 		return 1;
 	}
+
 	fuse_opt_parse(&args, &conf, spfs_opts, spfs_opt_process);
 
-	spfs_log_init(logfile);
+	g_log_set_default_handler(spfs_log_handler, stdout);
+
 	if (conf.spotify_username != NULL && !conf.spotify_password)
 	{
 		if((conf.spotify_password = getpass("spotify password:")) == NULL)

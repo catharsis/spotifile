@@ -1,4 +1,5 @@
 #include "spotify-fs.h"
+#include "spfs_spotify.h"
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
@@ -6,65 +7,70 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <glib.h>
 time_t g_logged_in_at = (time_t) -1;
 
 /* thread globals */
-static sp_session *g_spotify_session;
 static bool g_main_thread_do_notify = false;
-static pthread_mutex_t g_spotify_mutex;
 static pthread_mutex_t g_spotify_notify_mutex;
+static pthread_mutex_t g_spotify_api_mutex;
 static pthread_cond_t g_spotify_notify_cond;
+static pthread_cond_t g_spotify_data_available;
 static pthread_t spotify_thread;
 
 /*foward declarations*/
 void * spotify_thread_start_routine(void *arg);
 
-int spotify_login(const char *username, const char *password, const char *blob) {
+int spotify_login(sp_session * session, const char *username, const char *password, const char *blob) {
 	if (username == NULL) {
 		char reloginname[256];
 
-		if (sp_session_relogin(g_spotify_session) == SP_ERROR_NO_CREDENTIALS) {
-			spfs_log("no stored credentials");
+		if (sp_session_relogin(session) == SP_ERROR_NO_CREDENTIALS) {
+			g_info("no stored credentials");
 			return 1;
 		}
 
-		sp_session_remembered_user(g_spotify_session, reloginname, sizeof(reloginname));
-		spfs_log("trying to relogin as user %s", reloginname);
+		sp_session_remembered_user(session, reloginname, sizeof(reloginname));
+		g_info("trying to relogin as user %s", reloginname);
 
 	} else {
-		spfs_log("trying to login as %s", username);
-		sp_session_login(g_spotify_session, username, password, 1, blob);
+		g_info("trying to login as %s", username);
+		sp_session_login(session, username, password, 1, blob);
 	}
 	return 0;
 }
 
 static void spotify_log_message(sp_session *session, const char *message) {
-	spfs_log("spotify: %s", message);
+	g_info("spotify: %s", message);
 }
 
 static void spotify_logged_out(sp_session *session) {
 	g_logged_in_at = (time_t) -1;
-	spfs_log("spotify login: logged out");
+	g_info("spotify: logged out");
 }
 
 static void spotify_logged_in(sp_session *session, sp_error error)
 {
 	if(SP_ERROR_OK == error) {
 		time(&g_logged_in_at);
-		spfs_log("logged in successfully at %d", g_logged_in_at);
+		g_info("logged in successfully at %d", g_logged_in_at);
 	} else {
-		spfs_log("spotify login: %s", sp_error_message(error));
+		g_info("spotify login: %s", sp_error_message(error));
 	}
 }
 
 static void spotify_connection_error(sp_session *session, sp_error error)
 {
-	spfs_log("Connection error %d: %s\n", error, sp_error_message(error));
+	g_warning("Connection error %d: %s\n", error, sp_error_message(error));
 }
 
 static void artist_search_complete_cb(sp_search *result, void *userdata)
 {
-	spfs_log("Artist search complete!");
+	int ret = 0;
+	g_debug("Artist search complete!");
+	MUTEX_LOCK(ret, &g_spotify_api_mutex);
+	pthread_cond_broadcast(&g_spotify_data_available);
+	MUTEX_UNLOCK(ret, &g_spotify_api_mutex);
 }
 
 static void spotify_notify_main_thread(sp_session *session)
@@ -72,7 +78,7 @@ static void spotify_notify_main_thread(sp_session *session)
 	int ret = 0;
 	MUTEX_LOCK(ret, &g_spotify_notify_mutex);
 	g_main_thread_do_notify = true;
-	(void) pthread_cond_signal(&g_spotify_notify_cond);
+	pthread_cond_signal(&g_spotify_notify_cond);
 	MUTEX_UNLOCK(ret, &g_spotify_notify_mutex);
 
 }
@@ -85,7 +91,7 @@ static sp_session_callbacks spotify_callbacks = {
 	.log_message = spotify_log_message,
 };
 
-void spotify_session_init(const char *username, const char *password, const char *blob)
+sp_session * spotify_session_init(const char *username, const char *password, const char *blob)
 {
 	extern const uint8_t g_appkey[];
 	extern const size_t g_appkey_size;
@@ -94,8 +100,8 @@ void spotify_session_init(const char *username, const char *password, const char
 	sp_session *session;
 	memset(&config, 0, sizeof(config));
 	config.api_version = SPOTIFY_API_VERSION;
-	config.cache_location = "tmp";
-	config.settings_location = "tmp";
+	config.cache_location = "/tmp";
+	config.settings_location = "/tmp";
 	config.application_key = g_appkey;
 	config.application_key_size = g_appkey_size;
 	config.callbacks = &spotify_callbacks;
@@ -103,32 +109,33 @@ void spotify_session_init(const char *username, const char *password, const char
 	config.user_agent = application_name;
 	error = sp_session_create(&config, &session);
 	if ( error != SP_ERROR_OK ) {
-		spfs_log("failed to create session: %s",
+		g_warning("failed to create session: %s",
 				sp_error_message(error));
-		exit(1);
+		return NULL;
 	}
-	g_spotify_session = session;
-	spfs_log("spotify session created!");
-	if(spotify_login(username, password, blob) != 0)
-		spfs_log("login failed!");
+	g_info("spotify session created!");
+	if(spotify_login(session, username, password, blob) != 0)
+		g_warning("login failed!");
 
+	return session;
 }
 
-void spotify_session_destroy()
+void spotify_session_destroy(sp_session * session)
 {
-	free(g_spotify_session);
-	g_spotify_session = NULL;
-	spfs_log("session destroyed");
+	sp_session_logout(session);
+	free(session);
+	g_info("session destroyed");
 }
 
-void spotify_threads_init()
+void spotify_threads_init(sp_session *session)
 {
 	int s = 0;
-	s = pthread_mutex_init(&g_spotify_mutex, NULL);
+	
+	s = pthread_mutex_init(&g_spotify_api_mutex, NULL);
 	if ( s != 0) {
 		handle_error_en(s, "pthread_mutex_init");
 	}
-
+	
 	s = pthread_mutex_init(&g_spotify_notify_mutex, NULL);
 	if ( s != 0) {
 		handle_error_en(s, "pthread_mutex_init");
@@ -136,10 +143,15 @@ void spotify_threads_init()
 
 	s = pthread_cond_init(&g_spotify_notify_cond, NULL);
 	if ( s != 0) {
-		handle_error_en(s, "pthread_mutex_init");
+		handle_error_en(s, "pthread_cond_init");
+	}
+
+	s = pthread_cond_init(&g_spotify_data_available, NULL);
+	if ( s != 0) {
+		handle_error_en(s, "pthread_cond_init");
 	}
 	s = pthread_create(&spotify_thread, NULL,
-			spotify_thread_start_routine, (void *)NULL);
+			spotify_thread_start_routine, session);
 	if ( s != 0) {
 		handle_error_en(s, "pthread_create");
 	}
@@ -152,91 +164,97 @@ void spotify_threads_destroy()
 	if ( s != 0) {
 		handle_error_en(s, "pthread_cancel");
 	}
-	spfs_log("spotify thread cancel request sent");
+	g_debug("spotify thread cancel request sent");
 	s = pthread_join(spotify_thread, NULL);
 	if ( s != 0) {
-		handle_error_en(s, "pthread_cancel");
+		g_debug("failed to join spotify thread!");
+		handle_error_en(s, "pthread_join");
 	}
 	spotify_thread = -1;
-	spfs_log("spotify threads destroyed");
+	g_debug("spotify threads destroyed");
 }
 
 
 /* locking accessors */
-sp_connectionstate spotify_connectionstate() {
+sp_connectionstate spotify_connectionstate(sp_session * session) {
 	int ret = 0;
 	sp_connectionstate s;
 
-	MUTEX_LOCK(ret, &g_spotify_mutex);
-	s = sp_session_connectionstate(g_spotify_session);
-	MUTEX_UNLOCK(ret, &g_spotify_mutex);
+	MUTEX_LOCK(ret, &g_spotify_api_mutex);
+	s = sp_session_connectionstate(session);
+	MUTEX_UNLOCK(ret, &g_spotify_api_mutex);
 
 	return s;
 }
 
 /* "public" convenience functions */
-char * spotify_connectionstate_str() {
-	sp_connectionstate connectionstate = spotify_connectionstate();
-	char *str = NULL;
+const char * spotify_connectionstate_str(sp_connectionstate connectionstate) {
 	switch (connectionstate) {
 		case SP_CONNECTION_STATE_LOGGED_OUT:
-			str = strdup("logged out");
+			return "logged out";
 			break;
 		case SP_CONNECTION_STATE_LOGGED_IN:
-			str = strdup("logged in");
+			return "logged in";
 			break;
 		case SP_CONNECTION_STATE_DISCONNECTED:
-			str = strdup("disconnected");
+			return "disconnected";
 			break;
 		case SP_CONNECTION_STATE_OFFLINE:
-			str = strdup("offline");
+			return "offline";
 			break;
 		case SP_CONNECTION_STATE_UNDEFINED: /* FALLTHROUGH */
 		default:
-			str = strdup("undefined");
+			return "undefined";
 			break;
 	}
-	if (!str)
-		handle_error_en(ENOMEM, "strdup");
-
-	return str;
 }
 
-char ** spotify_artist_search(char *query) {
+char ** spotify_artist_search(sp_session * session, const char *query) {
 	int ret = 0, i = 0, num_artists = 0;
 	sp_search *search = NULL;
 	sp_artist *artist = NULL;
 	char **artists = NULL;
-	spfs_log("initiating query");
+	g_debug("initiating query");
 	if (!query) {
 		return NULL;
 	}
-	if (g_logged_in_at < 0) {
-		spfs_log("Not logged in, won't search for artist %s", query);
+	sp_connectionstate connstate = spotify_connectionstate(session);
+	if ( connstate != SP_CONNECTION_STATE_LOGGED_IN) {
+		g_debug("Not logged in (%s), won't search for artist %s", spotify_connectionstate_str(connstate), query);
 		return NULL;
 	}
-	MUTEX_LOCK(ret, &g_spotify_mutex);
-	search = sp_search_create(g_spotify_session, query, 0, 0, 0, 0, 0, 100, 0, 0, SP_SEARCH_STANDARD, artist_search_complete_cb, NULL);
-	spfs_log("search created, waiting on load");
-	MUTEX_UNLOCK(ret, &g_spotify_mutex);
-	/*FIXME: pthread_cond_wait ? */
-	while (!sp_search_is_loaded(search));
-	num_artists = sp_search_num_artists(search);
-	spfs_log("Found %d artists", num_artists);
-	if (num_artists > 0) {
-		artists = calloc(num_artists+1, sizeof(char*));
-		if (!artists) {
-			handle_error("calloc");
+	MUTEX_LOCK(ret, &g_spotify_api_mutex);
+	search = sp_search_create(session, query, 0, 0, 0, 0, 0, 100, 0, 0, SP_SEARCH_STANDARD, artist_search_complete_cb, NULL);
+	g_debug("search created, waiting on load");
+	struct timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	ts.tv_sec += 60;
+	while (!sp_search_is_loaded(search)) {
+		if (pthread_cond_timedwait(&g_spotify_data_available, &g_spotify_api_mutex, &ts) != 0)
+		{
+			g_debug("still not loaded...giving up");
+			return NULL;
 		}
+
+		g_debug("still not loaded...");
+	}
+	
+	
+
+	num_artists = sp_search_num_artists(search);
+	g_debug("Found %d artists", num_artists);
+	if (num_artists > 0) {
+		artists = g_malloc_n(num_artists+1, sizeof(char*));
 
 		for (i = 0; i < num_artists; i++) {
 			artist = sp_search_artist(search, i);
-			artists[i] = strdup(sp_artist_name(artist));
-			spfs_log("Found artist: %s", artists[i]);
+			artists[i] = g_strdup(sp_artist_name(artist));
+			g_debug("Found artist: %s", artists[i]);
 		}
-		artists[++i] = NULL;
+		artists[i] = NULL;
 	}
 	sp_search_release(search);
+	MUTEX_UNLOCK(ret, &g_spotify_api_mutex);
 	return artists;
 }
 
@@ -245,11 +263,11 @@ void spotify_artist_search_destroy(char **artists) {
 	if (!artists) return;
 
 	while (artists[i] != NULL) {
-		free(artists[i]);
+		g_free(artists[i]);
 		artists[i] = NULL;
 		i++;
 	}
-	free(artists);
+	g_free(artists);
 	artists = NULL;
 }
 
@@ -257,22 +275,38 @@ void spotify_artist_search_destroy(char **artists) {
 void * spotify_thread_start_routine(void *arg) {
 	int event_timeout = 0, ret = 0;
 	sp_error err;
-	spfs_log("spotify session processing thread started");
+	sp_session * session = (sp_session *) arg;
+	g_debug("spotify session processing thread: started");
 	MUTEX_LOCK(ret, &g_spotify_notify_mutex);
 	for(;;) {
-		while (!g_main_thread_do_notify) {
-			pthread_cond_wait(&g_spotify_notify_cond, &g_spotify_notify_mutex);
+		if (event_timeout == 0) {
+			while (!g_main_thread_do_notify) {
+				g_debug("spotify session processing thread: waiting on notify mutex");
+				pthread_cond_wait(&g_spotify_notify_cond, &g_spotify_notify_mutex);
+			}
+		}
+		else {
+			
+            struct timespec ts;
+            clock_gettime(CLOCK_REALTIME, &ts);
+
+            ts.tv_sec += event_timeout / 1000;
+            ts.tv_nsec += (event_timeout % 1000) * 1000000;
+
+            pthread_cond_timedwait(&g_spotify_notify_cond, &g_spotify_notify_mutex, &ts);
 		}
 		g_main_thread_do_notify = false;
 
+		MUTEX_UNLOCK(ret, &g_spotify_notify_mutex);
+
 		do {
-			err = sp_session_process_events(g_spotify_session, &event_timeout);
+			err = sp_session_process_events(session, &event_timeout);
 			if (err != SP_ERROR_OK) {
-				spfs_log("Could not process events (%d): %s\n", err, sp_error_message(err));
+				g_warning("spotify session processing thread: Could not process events (%d): %s\n", err, sp_error_message(err));
 			}
 		} while (event_timeout == 0);
 		MUTEX_LOCK(ret, &g_spotify_notify_mutex);
 	}
-	spfs_log("spotify session processing thread ended");
+	g_debug("spotify session processing thread: ended");
 	return (void *)NULL;
 }

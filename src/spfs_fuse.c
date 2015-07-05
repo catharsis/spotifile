@@ -1,8 +1,10 @@
 #include "spotify-fs.h"
+#include "spfs_spotify.h"
 #include <string.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <libgen.h>
+#include <glib.h>
 extern time_t g_logged_in_at;
 
 
@@ -94,8 +96,13 @@ bool artists_file_getattr(const char *path, struct stat *statbuf)
 	return ret;
 }
 
+#define SP_SESSION (sp_session *)(fuse_get_context()->private_data)
+
 size_t connection_file_read(char *buf, size_t size, off_t offset) {
-	char *state_str = spotify_connectionstate_str();
+	sp_session *session = SP_SESSION;
+	char *state_str =
+		g_strdup(spotify_connectionstate_str(spotify_connectionstate(session)));
+
 	size_t len = 0;
 
 	if ((len = strlen(state_str)) > offset) {
@@ -106,7 +113,7 @@ size_t connection_file_read(char *buf, size_t size, off_t offset) {
 	else
 		size = 0;
 
-	free(state_str);
+	g_free(state_str);
 	return size;
 }
 
@@ -147,11 +154,15 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	}
 	else if (strcmp(dirname(dirname_path_copy), "/artists") == 0) {
 		/*artist query*/
-		artist = strdup(basename(basename_path_copy));
-		spfs_log("querying for artist: %s", artist);
-		artists = spotify_artist_search(artist);
+		sp_session *session = SP_SESSION;
+		if (session == NULL) {
+			g_warning("No session?");
+		}
+		artist = g_strdup(basename(basename_path_copy));
+		g_debug("querying for artist: %s", artist);
+		artists = spotify_artist_search(session, artist);
 		if (artists != NULL) {
-			spfs_log("walking result");
+			g_debug("walking result");
 			while (artists[i]) {
 				filler(buf, artists[i], NULL, 0);
 				++i;
@@ -159,13 +170,14 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 			spotify_artist_search_destroy(artists);
 		}
 		else {
+			g_debug("no artist search result");
 			ret = -ENOENT;
 		}
 	}
 	else
 		ret = -ENOENT;
 
-	spfs_log("exit readdir for path %s ( parts: %s, %s)", path, dirname_path_copy, basename_path_copy);
+	g_debug("exit readdir for path %s ( parts: %s, %s)", path, dirname_path_copy, basename_path_copy);
 	return ret;
 }
 
