@@ -181,6 +181,15 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 		g_free(artist);
 		if (artists != NULL) {
 			while (artists[i]) {
+				gchar *p = artists[i];
+				/* Replace slashes, since they are reserved and unescapable in
+				 * directory names.
+				 * Possibly, we could replace this with some
+				 * unicode symbol that resembles the usual slash. But that's for
+				 * another rainy day*/
+				while ((p = strchr(p, '/')) != NULL) {
+					*p = ' ';
+				}
 				struct stat *st = g_new0(struct stat, 1);
 				st->st_mode = S_IFLNK;
 				filler(buf, artists[i], st, 0);
