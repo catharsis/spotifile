@@ -6,14 +6,9 @@
 #include <stdarg.h>
 #include <glib.h>
 #include <libspotify/api.h>
-#include "spfs_spotify.h"
 #include "spotify-fs.h"
-struct spotifile_config {
-	char *spotify_username;
-	char *spotify_password;
-	bool remember_me;
-};
-
+#include "spfs_spotify.h"
+#include "spfs_fuse.h"
 enum {
 	KEY_HELP,
 	KEY_VERSION,
@@ -58,28 +53,6 @@ static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_ar
 	return 1;
 }
 
-
-void *spfs_init(struct fuse_conn_info *conn)
-{
-	sp_session *session = NULL;
-	struct fuse_context *context = fuse_get_context();
-	struct spotifile_config *conf= (struct spotifile_config *) context->private_data;
-	g_info("%s initialising ...", application_name);
-	session = spotify_session_init(conf->spotify_username, conf->spotify_password, NULL);
-	spotify_threads_init(session);
-	g_info("%s initialised", application_name);
-	return session;
-
-}
-
-void spfs_destroy(void *blob)
-{
-	sp_session *session = (sp_session *)blob;
-	spotify_session_destroy(session);
-	spotify_threads_destroy();
-	g_info("%s destroyed", application_name);
-}
-
 void spfs_log_handler(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
 	FILE *f = (FILE *)user_data;
 	fprintf(f, "%s: %s\n", application_name, message);
@@ -106,9 +79,9 @@ int main(int argc, char *argv[])
 		if((conf.spotify_password = getpass("spotify password:")) == NULL)
 			handle_error("getpass");
 	}
-	spfs_operations.init = spfs_init;
-	spfs_operations.destroy = spfs_destroy;
-	retval = fuse_main(args.argc, args.argv, &spfs_operations, &conf);
+
+	struct fuse_operations fuse_ops = spfs_get_fuse_operations();
+	retval = fuse_main(args.argc, args.argv, &fuse_ops, &conf);
 	if (retval != 0) {
 		fprintf(stderr, "Error initialising spotifile\n");
 	}

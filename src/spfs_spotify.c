@@ -6,7 +6,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
-#include <glib.h>
 time_t g_logged_in_at = (time_t) -1;
 
 /* thread globals */
@@ -182,14 +181,14 @@ const char * spotify_connectionstate_str(sp_connectionstate connectionstate) {
 	}
 }
 
-char ** spotify_artist_search(sp_session * session, const char *query) {
+GSList *spotify_artist_search(sp_session * session, const char *query) {
 	int ret = 0, i = 0, num_artists = 0;
 	sp_search *search = NULL;
 	sp_artist *artist = NULL;
-	char **artists = NULL;
-	if (!query) {
-		return NULL;
-	}
+	GSList *artists = NULL;
+	g_return_val_if_fail(session != NULL, NULL);
+	g_return_val_if_fail(query != NULL, NULL);
+
 	sp_connectionstate connstate = spotify_connectionstate(session);
 	if ( connstate != SP_CONNECTION_STATE_LOGGED_IN) {
 		g_debug("Not logged in (%s), won't search for artist %s", spotify_connectionstate_str(connstate), query);
@@ -201,7 +200,6 @@ char ** spotify_artist_search(sp_session * session, const char *query) {
 	
 	gint64 end_time = g_get_monotonic_time() + 30 * G_TIME_SPAN_SECOND;
 	while (!sp_search_is_loaded(search)) {
-
 		if (!g_cond_wait_until(&g_spotify_data_available, &g_spotify_api_mutex, end_time))
 		{
 			g_mutex_unlock(&g_spotify_api_mutex);
@@ -213,31 +211,40 @@ char ** spotify_artist_search(sp_session * session, const char *query) {
 	num_artists = sp_search_num_artists(search);
 	g_debug("Found %d artists", num_artists);
 	if (num_artists > 0) {
-		artists = g_malloc_n(num_artists+1, sizeof(char*));
-
 		for (i = 0; i < num_artists; i++) {
 			artist = sp_search_artist(search, i);
-			artists[i] = g_strdup(sp_artist_name(artist));
-			g_debug("Found artist: %s", artists[i]);
+			artists = g_slist_append(artists, artist); /*sp_artist_ref?*/
+			g_debug("Found artist: %s", sp_artist_name(artist));
 		}
-		artists[i] = NULL;
 	}
 	sp_search_release(search);
 	g_mutex_unlock(&g_spotify_api_mutex);
 	return artists;
 }
 
-void spotify_artist_search_destroy(char **artists) {
-	int i = 0;
-	if (!artists) return;
+const gchar * spotify_artist_name(sp_artist *artist) {
+	const gchar *name = NULL;
+	g_mutex_lock(&g_spotify_api_mutex);
+	name = sp_artist_name(artist);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return name;
+}
 
-	while (artists[i] != NULL) {
-		g_free(artists[i]);
-		artists[i] = NULL;
-		i++;
-	}
-	g_free(artists);
-	artists = NULL;
+sp_link * spotify_link_create_from_artist(sp_artist *artist) {
+	sp_link *link = NULL;
+	g_mutex_lock(&g_spotify_api_mutex);
+	link = sp_link_create_from_artist(artist);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return link;
+}
+
+int spotify_link_as_string(sp_link *link, char *buf, int buffer_size) {
+	int ret = 0;
+	g_mutex_lock(&g_spotify_api_mutex);
+	ret = sp_link_as_string(link, buf, buffer_size);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return ret;
+
 }
 
 /*thread routine*/
