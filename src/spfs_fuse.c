@@ -8,10 +8,11 @@
 extern time_t g_logged_in_at;
 
 
+#define SP_SESSION (sp_session *)(fuse_get_context()->private_data)
 /* functional files - forward function declarations */
 size_t connection_file_read(char *buf, size_t size, off_t offset);
 bool connection_file_getattr(const char *path, struct stat *statbuf);
-bool artists_file_getattr(const char *path, struct stat *statbuf);
+bool search_file_getattr(const char *path, struct stat *statbuf);
 
 struct spfs_file {
 	char *abs_path;
@@ -25,9 +26,9 @@ static struct spfs_file *spfs_files[] = {
 		.spfs_file_getattr = connection_file_getattr,
 		.spfs_file_read = connection_file_read
 	},
-	&(struct spfs_file){ /*artists*/
-		.abs_path = "/artists",
-		.spfs_file_getattr = artists_file_getattr,
+	&(struct spfs_file){ /*search*/
+		.abs_path = "/search",
+		.spfs_file_getattr = search_file_getattr,
 		.spfs_file_read = NULL
 	},
 	/*SENTINEL*/
@@ -70,36 +71,45 @@ bool connection_file_getattr(const char* path, struct stat *statbuf)
 	}
 }
 
-bool artists_file_getattr(const char *path, struct stat *statbuf)
+bool search_file_getattr(const char *path, struct stat *statbuf)
 {
-	char *dirname_path_copy = strdup(path);
-
 	bool ret = true;
-	if (strcmp("/artists", path) == 0) {
-		/*artists root*/
-		statbuf->st_mode = S_IFDIR | 0755;
-	}
-	else if (strcmp(dirname(dirname_path_copy), "/artists") == 0)
-	{
-		/*artist query */
-		/* here we set up a directory, which if changed into will generate
-		 * a query for artists matching the directory name.
-		 * We defer the actual query, since executing it here might impact
-		 * performance due to shell tab completion, and other stat'ing shell extensions*/
-		statbuf->st_mode = S_IFDIR | 0755;
+	if (g_strcmp0("/search", path) == 0) {
+		/*search root*/
 		statbuf->st_mtime = time(NULL);
+		statbuf->st_mode = S_IFDIR | 0755;
 	}
-	else {
-		/*we're deeper than expected, ignore call*/
-		ret = false;
+	else if (g_str_has_prefix(path, "/search/artists"))
+	{
+		/*artist search*/	
+		char *dir = g_path_get_dirname(path);
+		if (g_strcmp0(path, "/search/artists") == 0) {
+			statbuf->st_mode = S_IFDIR | 0755;
+			statbuf->st_mtime = time(NULL);
+		}
+		else if (g_strcmp0(dir, "/search/artists") == 0) {
+			/* here we set up a directory, which if changed into will generate
+			 * a query for artists matching the directory name.
+			 * We defer the actual query, since executing it here might impact
+			 * performance due to shell tab completion, and other stat'ing shell extensions*/
+			statbuf->st_mode = S_IFDIR | 0755;
+			statbuf->st_mtime = time(NULL);
+		}
+		else {
+			/* This is a search result. */
+			statbuf->st_mode = S_IFLNK | 0755;
+			statbuf->st_mtime = time(NULL);
+		}
+		g_free(dir);
 	}
+	
 	return ret;
 }
 
-#define SP_SESSION (sp_session *)(fuse_get_context()->private_data)
 
 size_t connection_file_read(char *buf, size_t size, off_t offset) {
 	sp_session *session = SP_SESSION;
+	g_return_val_if_fail(session != NULL, 0);
 	char *state_str =
 		g_strdup(spotify_connectionstate_str(spotify_connectionstate(session)));
 
@@ -131,11 +141,19 @@ int spfs_read(const char *path, char *buf, size_t size, off_t offset,
 
 }
 
+int spfs_readlink(const char *path, char *buf, size_t len) {
+	strncpy(buf, "../..", len);
+	return 0;
+}
+
 int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi)
 {
 	/*TODO: remove the hardcoding of paths, parse
 	 * spfs_files instead*/
+	sp_session *session = SP_SESSION;
+	g_debug("readdir path:%s ", path);
+	g_return_val_if_fail(session != NULL, 0);
 	char *dirname_path_copy = strdup(path);
 	char *basename_path_copy = strdup(path);
 	char *artist = NULL;
@@ -146,25 +164,26 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 		filler(buf, ".", NULL, 0);
 		filler(buf, "..", NULL, 0);
 		filler(buf, "connection", NULL, 0);
-		filler(buf, "artists", NULL, 0);
+		filler(buf, "search", NULL, 0);
 	}
-	else if (strcmp(path, "/artists") == 0) {
+	else if (strcmp(path, "/search") == 0) {
 		filler(buf, ".", NULL, 0);
 		filler(buf, "..", NULL, 0);
+		filler(buf, "artists", NULL, 0);
 	}
-	else if (strcmp(dirname(dirname_path_copy), "/artists") == 0) {
+	else if (strcmp(dirname(dirname_path_copy), "/search/artists") == 0) {
 		/*artist query*/
-		sp_session *session = SP_SESSION;
-		if (session == NULL) {
-			g_warning("No session?");
-		}
+		filler(buf, ".", NULL, 0);
+		filler(buf, "..", NULL, 0);
 		artist = g_strdup(basename(basename_path_copy));
 		g_debug("querying for artist: %s", artist);
 		artists = spotify_artist_search(session, artist);
+		g_free(artist);
 		if (artists != NULL) {
-			g_debug("walking result");
 			while (artists[i]) {
-				filler(buf, artists[i], NULL, 0);
+				struct stat *st = g_new0(struct stat, 1);
+				st->st_mode = S_IFLNK;
+				filler(buf, artists[i], st, 0);
 				++i;
 			}
 			spotify_artist_search_destroy(artists);
@@ -177,7 +196,6 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	else
 		ret = -ENOENT;
 
-	g_debug("exit readdir for path %s ( parts: %s, %s)", path, dirname_path_copy, basename_path_copy);
 	return ret;
 }
 
@@ -185,4 +203,5 @@ struct fuse_operations spfs_operations = {
 	.getattr = spfs_getattr,
 	.read = spfs_read,
 	.readdir = spfs_readdir,
+	.readlink = spfs_readlink
 };

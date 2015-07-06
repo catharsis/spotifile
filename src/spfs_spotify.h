@@ -5,7 +5,7 @@
 
 sp_session * spotify_session_init(const char *username, const char *password, const char *blob);
 void spotify_session_destroy(sp_session *);
-void spotify_threads_init();
+void spotify_threads_init(sp_session *);
 void spotify_threads_destroy();
 sp_connectionstate spotify_connectionstate();
 const char * spotify_connectionstate_str();

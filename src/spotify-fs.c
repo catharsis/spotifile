@@ -66,7 +66,7 @@ void *spfs_init(struct fuse_conn_info *conn)
 	struct spotifile_config *conf= (struct spotifile_config *) context->private_data;
 	g_info("%s initialising ...", application_name);
 	session = spotify_session_init(conf->spotify_username, conf->spotify_password, NULL);
-	spotify_threads_init();
+	spotify_threads_init(session);
 	g_info("%s initialised", application_name);
 	return session;
 
@@ -82,7 +82,7 @@ void spfs_destroy(void *blob)
 
 void spfs_log_handler(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
 	FILE *f = (FILE *)user_data;
-	fprintf(f, "%s\n", message);
+	fprintf(f, "%s: %s\n", application_name, message);
 	fflush(f);
 }
 

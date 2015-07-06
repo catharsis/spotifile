@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
-#include <pthread.h>
 #include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
@@ -12,14 +11,15 @@ time_t g_logged_in_at = (time_t) -1;
 
 /* thread globals */
 static bool g_main_thread_do_notify = false;
-static pthread_mutex_t g_spotify_notify_mutex;
-static pthread_mutex_t g_spotify_api_mutex;
-static pthread_cond_t g_spotify_notify_cond;
-static pthread_cond_t g_spotify_data_available;
-static pthread_t spotify_thread;
+static bool g_running = false;
+static GMutex g_spotify_notify_mutex;
+static GMutex g_spotify_api_mutex;
+static GCond g_spotify_notify_cond;
+static GCond g_spotify_data_available;
+static GThread *spotify_thread;
 
 /*foward declarations*/
-void * spotify_thread_start_routine(void *arg);
+void * spotify_thread_start(void *arg);
 
 int spotify_login(sp_session * session, const char *username, const char *password, const char *blob) {
 	if (username == NULL) {
@@ -53,9 +53,9 @@ static void spotify_logged_in(sp_session *session, sp_error error)
 {
 	if(SP_ERROR_OK == error) {
 		time(&g_logged_in_at);
-		g_info("logged in successfully at %d", g_logged_in_at);
+		g_info("spotify: logged in at %d", g_logged_in_at);
 	} else {
-		g_info("spotify login: %s", sp_error_message(error));
+		g_info("spotify: logged in failed (%s)", sp_error_message(error));
 	}
 }
 
@@ -68,18 +68,18 @@ static void artist_search_complete_cb(sp_search *result, void *userdata)
 {
 	int ret = 0;
 	g_debug("Artist search complete!");
-	MUTEX_LOCK(ret, &g_spotify_api_mutex);
-	pthread_cond_broadcast(&g_spotify_data_available);
-	MUTEX_UNLOCK(ret, &g_spotify_api_mutex);
+	g_mutex_lock(&g_spotify_api_mutex);
+	g_cond_broadcast(&g_spotify_data_available);
+	g_mutex_unlock(&g_spotify_api_mutex);
 }
 
 static void spotify_notify_main_thread(sp_session *session)
 {
 	int ret = 0;
-	MUTEX_LOCK(ret, &g_spotify_notify_mutex);
+	g_mutex_lock(&g_spotify_notify_mutex);
 	g_main_thread_do_notify = true;
-	pthread_cond_signal(&g_spotify_notify_cond);
-	MUTEX_UNLOCK(ret, &g_spotify_notify_mutex);
+	g_cond_signal(&g_spotify_notify_cond);
+	g_mutex_unlock(&g_spotify_notify_mutex);
 
 }
 
@@ -100,7 +100,7 @@ sp_session * spotify_session_init(const char *username, const char *password, co
 	sp_session *session;
 	memset(&config, 0, sizeof(config));
 	config.api_version = SPOTIFY_API_VERSION;
-	config.cache_location = "/tmp";
+	config.cache_location = "/var/tmp/";
 	config.settings_location = "/tmp";
 	config.application_key = g_appkey;
 	config.application_key_size = g_appkey_size;
@@ -129,48 +129,21 @@ void spotify_session_destroy(sp_session * session)
 
 void spotify_threads_init(sp_session *session)
 {
-	int s = 0;
-	
-	s = pthread_mutex_init(&g_spotify_api_mutex, NULL);
-	if ( s != 0) {
-		handle_error_en(s, "pthread_mutex_init");
-	}
-	
-	s = pthread_mutex_init(&g_spotify_notify_mutex, NULL);
-	if ( s != 0) {
-		handle_error_en(s, "pthread_mutex_init");
-	}
-
-	s = pthread_cond_init(&g_spotify_notify_cond, NULL);
-	if ( s != 0) {
-		handle_error_en(s, "pthread_cond_init");
-	}
-
-	s = pthread_cond_init(&g_spotify_data_available, NULL);
-	if ( s != 0) {
-		handle_error_en(s, "pthread_cond_init");
-	}
-	s = pthread_create(&spotify_thread, NULL,
-			spotify_thread_start_routine, session);
-	if ( s != 0) {
-		handle_error_en(s, "pthread_create");
-	}
+	g_mutex_init(&g_spotify_api_mutex);
+	g_mutex_init(&g_spotify_notify_mutex);
+	g_cond_init(&g_spotify_notify_cond);
+	g_cond_init(&g_spotify_data_available);
+	g_running = true;
+	spotify_thread = g_thread_new("spotify", spotify_thread_start, session);
 }
 
 void spotify_threads_destroy()
 {
 	int s = 0;
-	s = pthread_cancel(spotify_thread);
-	if ( s != 0) {
-		handle_error_en(s, "pthread_cancel");
-	}
+	g_running = false;
 	g_debug("spotify thread cancel request sent");
-	s = pthread_join(spotify_thread, NULL);
-	if ( s != 0) {
-		g_debug("failed to join spotify thread!");
-		handle_error_en(s, "pthread_join");
-	}
-	spotify_thread = -1;
+	g_thread_join(spotify_thread);	
+	spotify_thread = NULL;
 	g_debug("spotify threads destroyed");
 }
 
@@ -180,9 +153,9 @@ sp_connectionstate spotify_connectionstate(sp_session * session) {
 	int ret = 0;
 	sp_connectionstate s;
 
-	MUTEX_LOCK(ret, &g_spotify_api_mutex);
+	g_mutex_lock(&g_spotify_api_mutex);
 	s = sp_session_connectionstate(session);
-	MUTEX_UNLOCK(ret, &g_spotify_api_mutex);
+	g_mutex_unlock(&g_spotify_api_mutex);
 
 	return s;
 }
@@ -214,7 +187,6 @@ char ** spotify_artist_search(sp_session * session, const char *query) {
 	sp_search *search = NULL;
 	sp_artist *artist = NULL;
 	char **artists = NULL;
-	g_debug("initiating query");
 	if (!query) {
 		return NULL;
 	}
@@ -223,24 +195,21 @@ char ** spotify_artist_search(sp_session * session, const char *query) {
 		g_debug("Not logged in (%s), won't search for artist %s", spotify_connectionstate_str(connstate), query);
 		return NULL;
 	}
-	MUTEX_LOCK(ret, &g_spotify_api_mutex);
+	g_mutex_lock(&g_spotify_api_mutex);
 	search = sp_search_create(session, query, 0, 0, 0, 0, 0, 100, 0, 0, SP_SEARCH_STANDARD, artist_search_complete_cb, NULL);
 	g_debug("search created, waiting on load");
-	struct timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
-	ts.tv_sec += 60;
+	
+	gint64 end_time = g_get_monotonic_time() + 30 * G_TIME_SPAN_SECOND;
 	while (!sp_search_is_loaded(search)) {
-		if (pthread_cond_timedwait(&g_spotify_data_available, &g_spotify_api_mutex, &ts) != 0)
+
+		if (!g_cond_wait_until(&g_spotify_data_available, &g_spotify_api_mutex, end_time))
 		{
+			g_mutex_unlock(&g_spotify_api_mutex);
 			g_debug("still not loaded...giving up");
 			return NULL;
 		}
-
-		g_debug("still not loaded...");
 	}
 	
-	
-
 	num_artists = sp_search_num_artists(search);
 	g_debug("Found %d artists", num_artists);
 	if (num_artists > 0) {
@@ -254,7 +223,7 @@ char ** spotify_artist_search(sp_session * session, const char *query) {
 		artists[i] = NULL;
 	}
 	sp_search_release(search);
-	MUTEX_UNLOCK(ret, &g_spotify_api_mutex);
+	g_mutex_unlock(&g_spotify_api_mutex);
 	return artists;
 }
 
@@ -272,32 +241,27 @@ void spotify_artist_search_destroy(char **artists) {
 }
 
 /*thread routine*/
-void * spotify_thread_start_routine(void *arg) {
+void * spotify_thread_start(void *arg) {
 	int event_timeout = 0, ret = 0;
 	sp_error err;
 	sp_session * session = (sp_session *) arg;
+	g_return_val_if_fail(session != NULL, NULL);
 	g_debug("spotify session processing thread: started");
-	MUTEX_LOCK(ret, &g_spotify_notify_mutex);
-	for(;;) {
+	g_mutex_lock(&g_spotify_notify_mutex);
+	while (g_running) {
 		if (event_timeout == 0) {
 			while (!g_main_thread_do_notify) {
 				g_debug("spotify session processing thread: waiting on notify mutex");
-				pthread_cond_wait(&g_spotify_notify_cond, &g_spotify_notify_mutex);
+				g_cond_wait(&g_spotify_notify_cond, &g_spotify_notify_mutex);
 			}
 		}
-		else {
-			
-            struct timespec ts;
-            clock_gettime(CLOCK_REALTIME, &ts);
-
-            ts.tv_sec += event_timeout / 1000;
-            ts.tv_nsec += (event_timeout % 1000) * 1000000;
-
-            pthread_cond_timedwait(&g_spotify_notify_cond, &g_spotify_notify_mutex, &ts);
+		else {	
+			gint64 end_time = g_get_monotonic_time () + event_timeout;
+			g_cond_wait_until(&g_spotify_notify_cond, &g_spotify_notify_mutex, end_time);
 		}
 		g_main_thread_do_notify = false;
 
-		MUTEX_UNLOCK(ret, &g_spotify_notify_mutex);
+		g_mutex_unlock(&g_spotify_notify_mutex);
 
 		do {
 			err = sp_session_process_events(session, &event_timeout);
@@ -305,7 +269,7 @@ void * spotify_thread_start_routine(void *arg) {
 				g_warning("spotify session processing thread: Could not process events (%d): %s\n", err, sp_error_message(err));
 			}
 		} while (event_timeout == 0);
-		MUTEX_LOCK(ret, &g_spotify_notify_mutex);
+		g_mutex_lock(&g_spotify_notify_mutex);
 	}
 	g_debug("spotify session processing thread: ended");
 	return (void *)NULL;
