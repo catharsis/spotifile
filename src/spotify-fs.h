@@ -8,6 +8,9 @@
 #include <stdbool.h>
 #include <glib.h>
 
+/* Time (in seconds) to wait for callbacks to complete (synchronous calls)*/
+#define SPFS_CB_TIMEOUT_S 30
+
 #define handle_error_en(en, msg) \
 	do { errno = en; g_error("%s (%s)", msg, strerror(errno));} while(0)
 

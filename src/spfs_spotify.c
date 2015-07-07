@@ -198,7 +198,7 @@ GSList *spotify_artist_search(sp_session * session, const char *query) {
 	search = sp_search_create(session, query, 0, 0, 0, 0, 0, 100, 0, 0, SP_SEARCH_STANDARD, artist_search_complete_cb, NULL);
 	g_debug("search created, waiting on load");
 	
-	gint64 end_time = g_get_monotonic_time() + 30 * G_TIME_SPAN_SECOND;
+	gint64 end_time = g_get_monotonic_time() + SPFS_CB_TIMEOUT_S * G_TIME_SPAN_SECOND;
 	while (!sp_search_is_loaded(search)) {
 		if (!g_cond_wait_until(&g_spotify_data_available, &g_spotify_api_mutex, end_time))
 		{
@@ -213,7 +213,7 @@ GSList *spotify_artist_search(sp_session * session, const char *query) {
 	if (num_artists > 0) {
 		for (i = 0; i < num_artists; i++) {
 			artist = sp_search_artist(search, i);
-			artists = g_slist_append(artists, artist); /*sp_artist_ref?*/
+			artists = g_slist_append(artists, artist); /*FIXME: sp_artist_ref?*/
 			g_debug("Found artist: %s", sp_artist_name(artist));
 		}
 	}
@@ -237,6 +237,23 @@ sp_link * spotify_link_create_from_artist(sp_artist *artist) {
 	g_mutex_unlock(&g_spotify_api_mutex);
 	return link;
 }
+
+sp_link * spotify_link_create_from_string(const char *str) {
+	sp_link *link = NULL;
+	g_mutex_lock(&g_spotify_api_mutex);
+	link = sp_link_create_from_string(str);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return link;
+}
+
+sp_artist * spotify_link_as_artist(sp_link *link) {
+	sp_artist *artist= NULL;
+	g_mutex_lock(&g_spotify_api_mutex);
+	artist = sp_link_as_artist(link);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return artist;
+}
+
 
 int spotify_link_as_string(sp_link *link, char *buf, int buffer_size) {
 	int ret = 0;

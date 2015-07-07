@@ -11,7 +11,7 @@ extern time_t g_logged_in_at;
 
 struct spfs_data {
 	sp_session *session;
-	GSList *search_result;
+	GSList *search_result; /*FIXME: blech, this is horrible */
 };
 
 #define SPFS_DATA ((struct spfs_data *)(fuse_get_context()->private_data))
@@ -22,6 +22,7 @@ bool connection_file_getattr(const char *path, struct stat *statbuf);
 
 
 bool search_file_getattr(const char *path, struct stat *statbuf);
+bool browse_file_getattr(const char *path, struct stat *statbuf);
 
 struct spfs_file {
 	char *abs_path;
@@ -38,6 +39,11 @@ static struct spfs_file *spfs_files[] = {
 	&(struct spfs_file){ /*search*/
 		.abs_path = "/search",
 		.spfs_file_getattr = search_file_getattr,
+		.spfs_file_read = NULL
+	},
+	&(struct spfs_file){ /*browse*/
+		.abs_path = "/browse",
+		.spfs_file_getattr = browse_file_getattr,
 		.spfs_file_read = NULL
 	},
 	/*SENTINEL*/
@@ -77,6 +83,35 @@ bool connection_file_getattr(const char* path, struct stat *statbuf)
 		statbuf->st_size = 64;
 		statbuf->st_mtime = g_logged_in_at;
 		return true;
+	}
+}
+
+bool browse_file_getattr(const char *path, struct stat *statbuf)
+{
+	bool ret = true;
+	if (g_strcmp0("/browse", path) == 0) {
+		/*search root*/
+		statbuf->st_mtime = time(NULL);
+		statbuf->st_mode = S_IFDIR | 0755;
+	}
+	else {
+		/*FIXME: hardcoded artists :(*/
+		gchar *linkstr = g_path_get_basename(path);
+		sp_link *link = spotify_link_create_from_string(linkstr);
+		if (!link) {
+			g_debug("no link");
+			return false;
+		}
+		sp_artist *artist = spotify_link_as_artist(link);
+		if (!artist) {
+			g_debug("no artist");
+			return false;
+		}
+
+		g_debug("Oh yeah: %s", spotify_artist_name(artist));
+		statbuf->st_mode = S_IFDIR | 0755;
+		statbuf->st_mtime = time(NULL);
+
 	}
 }
 
