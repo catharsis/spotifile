@@ -1,0 +1,180 @@
+#include "spfs_fuse_entity.h"
+#include <string.h>
+
+spfs_entity * spfs_entity_find_path(spfs_entity *root, const gchar *path) {
+	g_return_val_if_fail(root != NULL, NULL);
+	g_return_val_if_fail(root->name == NULL, NULL);
+	g_return_val_if_fail(path != NULL, NULL);
+
+	if (strlen(path) <= 0) {
+		return NULL;
+	}
+	if (g_strcmp0(path, "/") == 0) {
+		return root;
+	}
+
+	gchar **elems = g_strsplit(path, "/", 0);
+	gchar *cur_el = NULL;
+	spfs_entity *found = root;
+
+	size_t i = 0;
+	while ((elems[i] != NULL) && found != NULL) {
+		/*Skip leading empty elements*/
+		while (elems[i+1] != NULL && strlen(elems[i]) == 0) {
+			++i;
+			continue;
+		}
+		cur_el = elems[i];
+
+		/*Skip trailing empty elements*/
+		while (elems[i+1] != NULL && strlen(elems[i+1]) == 0) {
+			++i;
+		}
+
+		if (elems[i+1] == NULL && (g_strcmp0(cur_el, found->name) == 0)) {
+			break;
+		}
+		else if (found->type == SPFS_DIR) {
+			GHashTable *children = found->e.dir->children;
+			found = g_hash_table_lookup(children, cur_el);
+		}
+		else {
+			/* Where do we go now, but nowhere? */
+			found = NULL;
+		}
+		++i;
+	}
+	g_strfreev(elems);
+	return found;
+}
+
+gchar *spfs_entity_get_full_path(spfs_entity *e) {
+	g_return_val_if_fail(e != NULL, NULL);
+	if (e->name == NULL) {
+		return g_strdup("/");
+	}
+
+	gchar *p = g_malloc0(PATH_MAX);
+	GArray *elems = g_array_new(FALSE, FALSE, sizeof(gpointer));
+
+	while (e != NULL) {
+		if (e->name != NULL) {
+			gchar *s = g_strdup(e->name);
+			g_array_append_val(elems, s);
+		}
+		e = e->parent;
+	}
+
+	size_t i;
+	for (i = elems->len; i > 0; i--) {
+		gchar *el = g_array_index(elems, gchar*, i-1);
+		g_strlcat(p, "/", PATH_MAX);
+		g_strlcat(p, el, PATH_MAX);
+		g_free(el);
+	}
+	g_array_free(elems, TRUE);
+	return p;
+}
+
+void spfs_entity_dir_add_child(spfs_entity *parent, spfs_entity *child) {
+	g_return_if_fail(parent != NULL);
+	g_return_if_fail(child != NULL);
+	g_return_if_fail(parent->type == S_IFDIR);
+
+	child->parent = parent;
+	g_hash_table_insert(parent->e.dir->children, child->name, child);
+}
+
+void spfs_entity_link_set_target(spfs_entity *link, spfs_entity *target) {
+	g_return_if_fail(link != NULL);
+	g_return_if_fail(target != NULL);
+	g_return_if_fail(link->type == S_IFDIR);
+
+	link->e.link->target = target;
+}
+static spfs_entity * spfs_entity_create(const gchar *name, SpfsEntityType type) {
+	spfs_entity *e = g_new0(spfs_entity, 1);
+	e->type = type;
+	if (name != NULL) {
+		e->name = g_strdup(name);
+	}
+	return e;
+}
+
+static void spfs_file_destroy(spfs_file *file) {
+	g_return_if_fail(file != NULL);
+	g_free(file);
+}
+
+static void spfs_link_destroy(spfs_link *link) {
+	g_return_if_fail(link != NULL);
+	g_free(link);
+}
+
+static void spfs_dir_destroy(spfs_dir *dir) {
+	g_return_if_fail(dir != NULL);
+	g_hash_table_destroy(dir->children);
+	g_free(dir);
+}
+
+void spfs_entity_destroy(spfs_entity *e) {
+	g_return_if_fail(e != NULL);
+	switch (e->type) {
+	case SPFS_DIR:
+		spfs_dir_destroy(e->e.dir);
+		break;
+	case SPFS_LINK:
+		spfs_link_destroy(e->e.link);
+		break;
+	case SPFS_FILE:
+		spfs_file_destroy(e->e.file);
+		break;
+	}
+	g_free(e->name);
+	g_free(e);
+}
+
+static void spfs_entity_ht_destroy(gpointer p) {
+	spfs_entity *e = (spfs_entity *)p;
+	spfs_entity_destroy(e);
+}
+
+static gboolean spfs_entity_ht_key_compare(gconstpointer a, gconstpointer b) {
+	return (g_strcmp0(a, b) == 0);
+}
+
+spfs_entity * spfs_entity_file_create(const gchar *name, SpfsGetattrFunc getattr_func, SpfsReadFunc read_func) {
+	g_return_val_if_fail(name != NULL, NULL);
+	spfs_entity *e = spfs_entity_create(name, SPFS_FILE);
+	e->getattr = getattr_func;
+	e->e.file = g_new0(spfs_file, 1);
+	e->e.file->read = read_func;
+	return e;
+}
+
+spfs_entity * spfs_entity_dir_create(const gchar *name, SpfsGetattrFunc getattr_func, SpfsReaddirFunc readdir_func) {
+	spfs_entity *e = spfs_entity_create(name, SPFS_DIR);
+	e->getattr = getattr_func;
+	e->parent = NULL;
+	e->e.dir = g_new0(spfs_dir, 1);
+	e->e.dir->readdir = readdir_func;
+	e->e.dir->children = g_hash_table_new_full(g_str_hash,
+			spfs_entity_ht_key_compare,
+			NULL,
+			spfs_entity_ht_destroy);
+	return e;
+}
+
+spfs_entity *spfs_entity_root_create(SpfsGetattrFunc getattr_func, SpfsReaddirFunc readdir_func) {
+	return spfs_entity_dir_create(NULL, getattr_func, readdir_func);
+}
+
+spfs_entity *spfs_entity_link_create(const gchar *name, SpfsGetattrFunc getattr_func, SpfsReadlinkFunc readlink_func) {
+	g_return_val_if_fail(name != NULL, NULL);
+	spfs_entity *e = spfs_entity_create(name, SPFS_LINK);
+	e->getattr = getattr_func;
+	e->e.link = g_new(spfs_link, 1);
+	e->e.link->readlink = readlink_func;
+	return e;
+}
+

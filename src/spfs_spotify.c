@@ -52,7 +52,7 @@ static void spotify_logged_in(sp_session *session, sp_error error)
 {
 	if(SP_ERROR_OK == error) {
 		time(&g_logged_in_at);
-		g_info("spotify: logged in at %d", g_logged_in_at);
+		g_info("spotify: logged in at %lld", (long long) g_logged_in_at);
 	} else {
 		g_info("spotify: logged in failed (%s)", sp_error_message(error));
 	}
@@ -65,7 +65,6 @@ static void spotify_connection_error(sp_session *session, sp_error error)
 
 static void artist_search_complete_cb(sp_search *result, void *userdata)
 {
-	int ret = 0;
 	g_debug("Artist search complete!");
 	g_mutex_lock(&g_spotify_api_mutex);
 	g_cond_broadcast(&g_spotify_data_available);
@@ -74,7 +73,6 @@ static void artist_search_complete_cb(sp_search *result, void *userdata)
 
 static void spotify_notify_main_thread(sp_session *session)
 {
-	int ret = 0;
 	g_mutex_lock(&g_spotify_notify_mutex);
 	g_main_thread_do_notify = true;
 	g_cond_signal(&g_spotify_notify_cond);
@@ -138,10 +136,9 @@ void spotify_threads_init(sp_session *session)
 
 void spotify_threads_destroy()
 {
-	int s = 0;
 	g_running = false;
 	g_debug("spotify thread cancel request sent");
-	g_thread_join(spotify_thread);	
+	g_thread_join(spotify_thread);
 	spotify_thread = NULL;
 	g_debug("spotify threads destroyed");
 }
@@ -149,7 +146,6 @@ void spotify_threads_destroy()
 
 /* locking accessors */
 sp_connectionstate spotify_connectionstate(sp_session * session) {
-	int ret = 0;
 	sp_connectionstate s;
 
 	g_mutex_lock(&g_spotify_api_mutex);
@@ -182,7 +178,7 @@ const char * spotify_connectionstate_str(sp_connectionstate connectionstate) {
 }
 
 GSList *spotify_artist_search(sp_session * session, const char *query) {
-	int ret = 0, i = 0, num_artists = 0;
+	int i = 0, num_artists = 0;
 	sp_search *search = NULL;
 	sp_artist *artist = NULL;
 	GSList *artists = NULL;
@@ -266,7 +262,7 @@ int spotify_link_as_string(sp_link *link, char *buf, int buffer_size) {
 
 /*thread routine*/
 void * spotify_thread_start(void *arg) {
-	int event_timeout = 0, ret = 0;
+	int event_timeout = 0;
 	sp_error err;
 	sp_session * session = (sp_session *) arg;
 	g_return_val_if_fail(session != NULL, NULL);
