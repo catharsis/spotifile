@@ -57,5 +57,6 @@ spfs_entity * spfs_entity_dir_create(const gchar *name, SpfsGetattrFunc getattr_
 void spfs_entity_dir_add_child(spfs_entity *parent, spfs_entity *child);
 
 spfs_entity *spfs_entity_link_create(const gchar *name, SpfsGetattrFunc getattr_func, SpfsReadlinkFunc readlink_func);
+void spfs_entity_link_set_target(spfs_entity *link, spfs_entity *target);
 
 #endif /* SPFS_FUSE_ENTITY_H */

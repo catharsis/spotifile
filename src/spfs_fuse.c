@@ -26,6 +26,39 @@ int connection_file_getattr(const char *path, struct stat *statbuf);
 int search_file_getattr(const char *path, struct stat *statbuf);
 int browse_file_getattr(const char *path, struct stat *statbuf);
 
+
+static void fill_dir_children(spfs_dir *dir, void **buf, fuse_fill_dir_t filler) {
+	g_return_if_fail(dir != NULL);
+	/* Autofill children*/
+	GHashTableIter iter;
+	gpointer epath, sube;
+	g_hash_table_iter_init (&iter, dir->children);
+	while (g_hash_table_iter_next (&iter, &epath, &sube))
+	{
+		filler(*buf, epath, NULL, 0);
+	}
+}
+static spfs_entity *find_existing_parent(spfs_entity *root, const char *path) {
+	/* FIXME: This comment doesn't belong here
+	 * Go up the tree until we find something that can handle this request.
+	 * Since not all entities are materialized (but rather, generated on-the-fly), it is
+	 * not necessarily an error that we don't find an exact match here. Of
+	 * course, this means that the delegate needs to take care that the path received
+	 * actually something sensible from its own POV.
+	 */
+	spfs_entity *e = NULL;
+	gchar *searchpath = g_strdup(path), *tmp;
+	while ( (e = spfs_entity_find_path((SPFS_DATA)->root, searchpath)) == NULL) {
+		tmp = searchpath;
+		searchpath = g_path_get_dirname(searchpath);
+		g_free(tmp);
+	}
+
+	g_free(searchpath);
+	return e;
+}
+
+
 int spfs_dir_getattr(const char *path, struct stat *statbuf)
 {
 	memset(statbuf, 0, sizeof(struct stat));
@@ -36,11 +69,16 @@ int spfs_dir_getattr(const char *path, struct stat *statbuf)
 
 int spfs_getattr(const char *path, struct stat *statbuf)
 {
-	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
-	if (e != NULL && e->getattr != NULL) {
-		return (e->getattr)(path, statbuf);
+	g_debug ("getattr: %s", path);
+	spfs_entity *e = find_existing_parent((SPFS_DATA)->root, path);
+	if (e != NULL) {
+		if (e->getattr != NULL)
+			return (e->getattr)(path, statbuf);
+		else if (e->type == SPFS_DIR)
+			return spfs_dir_getattr(path, statbuf);
 	}
-	return spfs_dir_getattr(path, statbuf);
+
+	return -ENOENT;
 }
 
 int connection_file_getattr(const char* path, struct stat *statbuf)
@@ -142,6 +180,7 @@ int spfs_read(const char *path, char *buf, size_t size, off_t offset,
 }
 
 int spfs_readlink(const char *path, char *buf, size_t len) {
+	g_debug("readlink: %s", path);
 	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
 	g_return_val_if_fail(e != NULL, -ENOENT);
 	g_return_val_if_fail(e->type == SPFS_LINK, -ENOENT);
@@ -157,6 +196,7 @@ int spfs_readlink(const char *path, char *buf, size_t len) {
 int browse_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
 
+	g_debug ("browse readdir: %s", path);
 	gchar *dir= g_path_get_dirname(path);
 	if (g_strcmp0(dir, "/browse/artists") == 0) {
 		/*FIXME: hardcoded artists :(*/
@@ -179,42 +219,65 @@ int browse_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 	g_free(dir);
 	return 0;
 }
+
 int search_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
+	g_debug ("search readdir: %s", path);
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
 
 	gchar *dir = g_path_get_dirname(path);
-	if (strcmp(dir, "/search/artists") == 0) {
+	if (g_strcmp0(dir, "/search/artists") == 0) {
 		/*artist query*/
 		gchar *query = g_path_get_basename(path);
 		GSList *artists;
-		filler(buf, ".", NULL, 0);
-		filler(buf, "..", NULL, 0);
 		g_debug("querying for artist: %s", query);
 		artists = spotify_artist_search(session, query);
-		g_free(query);
 		if (artists != NULL) {
 			GSList *tmp = artists;
-			//spfs_entity *artist_browse_dir = spfs_entity_find_path(SPFS_DATA->root, "/browse/artists");
+			spfs_entity *artist_browse_dir = spfs_entity_find_path(SPFS_DATA->root, "/browse/artists");
+			spfs_entity *artist_search_dir = spfs_entity_find_path(SPFS_DATA->root, "/search/artists");
+			spfs_entity *this_search = spfs_entity_dir_create(query, NULL, NULL);
+			spfs_entity_dir_add_child(artist_search_dir,
+					this_search);
 			while (tmp != NULL) {
 				sp_artist *artist = (sp_artist *) tmp->data;
-				gchar *p;
 				gchar *artist_name = g_strdup(spotify_artist_name(artist));
 				/* Replace slashes, since they are reserved and unescapable in
 				 * directory names.
 				 * Possibly, we could replace this with some
 				 * unicode symbol that resembles the usual slash. But that's for
-				 * another rainy day*/
-				p = artist_name;
+				 * another rainy day
+				gchar *p = artist_name;
 				while ((p = strchr(p, '/')) != NULL) {
 					*p = ' ';
 				}
-				filler(buf, artist_name, NULL, 0);
+				*/
+				/* Create the target artist directory*/
+				sp_link *link = spotify_link_create_from_artist(artist);
+				if (!link) {
+					g_warning("no link");
+					return -ENOENT;
+				}
+
+				gchar artist_linkstring[1024] = {0, };
+				spotify_link_as_string(link, artist_linkstring, 1024);
+				spfs_entity *artist_dir = spfs_entity_dir_create(artist_linkstring,
+							browse_dir_getattr,
+							browse_dir_readdir);
+				spfs_entity_dir_add_child(artist_browse_dir, artist_dir);
+
+				spfs_entity *artist_search_link = spfs_entity_link_create(artist_name,
+						search_dir_getattr,
+						spfs_readlink);
+				spfs_entity_link_set_target(artist_search_link, artist_dir);
+				spfs_entity_dir_add_child(this_search, artist_search_link);
 
 				g_free(artist_name);
 				tmp = g_slist_next(tmp);
 			}
+			fill_dir_children(this_search->e.dir, &buf, filler);
+			g_free(query);
 		}
 		else {
 			g_debug("no artist search result");
@@ -232,42 +295,26 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	g_return_val_if_fail(session != NULL, 0);
 	g_debug("readdir path:%s ", path);
 
-	spfs_entity *e = NULL;
-	gchar *searchpath = g_strdup(path), *tmp;
-
-	/*
-	 * Go up the tree until we find something that can handle this request.
-	 * Since not all entities are materialized (but rather, generated on-the-fly), it is
-	 * not necessarily an error that we don't find an exact match here. Of
-	 * course, this means that the delegate needs to take care that the path received
-	 * actually something sensible from its own POV.
-	 */
-	while ( (e = spfs_entity_find_path((SPFS_DATA)->root, searchpath)) == NULL) {
-		tmp = searchpath;
-		searchpath = g_path_get_dirname(searchpath);
-		g_free(tmp);
-	}
-
-	g_free(searchpath);
+	spfs_entity *e = find_existing_parent((SPFS_DATA)->root, path);
 	if (!e || e->type != SPFS_DIR) {
 		return -ENOENT;
 	}
 
+	spfs_dir *dir = e->e.dir;
+
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 
-	/* Autofill children*/
-	GHashTableIter iter;
-	gpointer epath, sube;
-	g_hash_table_iter_init (&iter, e->e.dir->children);
-	while (g_hash_table_iter_next (&iter, &epath, &sube))
-	{
-		filler(buf, epath, NULL, 0);
+	if (g_hash_table_size(dir->children) > 0) {
+		fill_dir_children(dir, &buf, filler);
+		return 0;
 	}
-	if (e->e.dir->readdir != NULL) {
-		return e->e.dir->readdir(path, buf, filler, offset, fi);
+	else if (dir->readdir != NULL) {
+		return dir->readdir(path, buf, filler, offset, fi);
 	}
-	return 0;
+	else {
+		return -ENOENT;
+	}
 }
 
 void *spfs_init(struct fuse_conn_info *conn)

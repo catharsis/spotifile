@@ -88,7 +88,7 @@ void spfs_entity_dir_add_child(spfs_entity *parent, spfs_entity *child) {
 void spfs_entity_link_set_target(spfs_entity *link, spfs_entity *target) {
 	g_return_if_fail(link != NULL);
 	g_return_if_fail(target != NULL);
-	g_return_if_fail(link->type == S_IFDIR);
+	g_return_if_fail(link->type == S_IFLNK);
 
 	link->e.link->target = target;
 }
@@ -149,6 +149,7 @@ spfs_entity * spfs_entity_file_create(const gchar *name, SpfsGetattrFunc getattr
 	e->getattr = getattr_func;
 	e->e.file = g_new0(spfs_file, 1);
 	e->e.file->read = read_func;
+	g_debug("created file %s", name);
 	return e;
 }
 
@@ -162,6 +163,10 @@ spfs_entity * spfs_entity_dir_create(const gchar *name, SpfsGetattrFunc getattr_
 			spfs_entity_ht_key_compare,
 			NULL,
 			spfs_entity_ht_destroy);
+	if (name)
+		g_debug("created dir %s", name);
+	else
+		g_debug("created root");
 	return e;
 }
 
@@ -175,6 +180,7 @@ spfs_entity *spfs_entity_link_create(const gchar *name, SpfsGetattrFunc getattr_
 	e->getattr = getattr_func;
 	e->e.link = g_new(spfs_link, 1);
 	e->e.link->readlink = readlink_func;
+	g_debug("created link %s", name);
 	return e;
 }
 

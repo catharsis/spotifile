@@ -52,7 +52,7 @@ static void spotify_logged_in(sp_session *session, sp_error error)
 {
 	if(SP_ERROR_OK == error) {
 		time(&g_logged_in_at);
-		g_info("spotify: logged in at %lld", (long long) g_logged_in_at);
+		g_info("spotify: logged in at %d", (int)g_logged_in_at);
 	} else {
 		g_info("spotify: logged in failed (%s)", sp_error_message(error));
 	}
@@ -66,9 +66,7 @@ static void spotify_connection_error(sp_session *session, sp_error error)
 static void artist_search_complete_cb(sp_search *result, void *userdata)
 {
 	g_debug("Artist search complete!");
-	g_mutex_lock(&g_spotify_api_mutex);
 	g_cond_broadcast(&g_spotify_data_available);
-	g_mutex_unlock(&g_spotify_api_mutex);
 }
 
 static void spotify_notify_main_thread(sp_session *session)
@@ -193,7 +191,7 @@ GSList *spotify_artist_search(sp_session * session, const char *query) {
 	g_mutex_lock(&g_spotify_api_mutex);
 	search = sp_search_create(session, query, 0, 0, 0, 0, 0, 100, 0, 0, SP_SEARCH_STANDARD, artist_search_complete_cb, NULL);
 	g_debug("search created, waiting on load");
-	
+
 	gint64 end_time = g_get_monotonic_time() + SPFS_CB_TIMEOUT_S * G_TIME_SPAN_SECOND;
 	while (!sp_search_is_loaded(search)) {
 		if (!g_cond_wait_until(&g_spotify_data_available, &g_spotify_api_mutex, end_time))
@@ -203,7 +201,7 @@ GSList *spotify_artist_search(sp_session * session, const char *query) {
 			return NULL;
 		}
 	}
-	
+
 	num_artists = sp_search_num_artists(search);
 	g_debug("Found %d artists", num_artists);
 	if (num_artists > 0) {
@@ -275,7 +273,7 @@ void * spotify_thread_start(void *arg) {
 				g_cond_wait(&g_spotify_notify_cond, &g_spotify_notify_mutex);
 			}
 		}
-		else {	
+		else {
 			gint64 end_time = g_get_monotonic_time () + event_timeout;
 			g_cond_wait_until(&g_spotify_notify_cond, &g_spotify_notify_mutex, end_time);
 		}
@@ -284,7 +282,9 @@ void * spotify_thread_start(void *arg) {
 		g_mutex_unlock(&g_spotify_notify_mutex);
 
 		do {
+			g_mutex_lock(&g_spotify_api_mutex);
 			err = sp_session_process_events(session, &event_timeout);
+			g_mutex_unlock(&g_spotify_api_mutex);
 			if (err != SP_ERROR_OK) {
 				g_warning("spotify session processing thread: Could not process events (%d): %s\n", err, sp_error_message(err));
 			}
