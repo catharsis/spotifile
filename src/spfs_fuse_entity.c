@@ -1,5 +1,6 @@
 #include "spfs_fuse_entity.h"
 #include <string.h>
+#include <unistd.h>
 
 spfs_entity * spfs_entity_find_path(spfs_entity *root, const gchar *path) {
 	g_return_val_if_fail(root != NULL, NULL);
@@ -76,6 +77,30 @@ gchar *spfs_entity_get_full_path(spfs_entity *e) {
 	return p;
 }
 
+void spfs_entity_stat(spfs_entity *e, struct stat *statbuf) {
+	switch (e->type) {
+		case SPFS_DIR:
+			statbuf->st_mode = S_IFDIR | S_IRUSR | S_IXUSR;
+			break;
+		case SPFS_FILE:
+			statbuf->st_mode = S_IFREG | S_IRUSR;
+			statbuf->st_size = e->e.file->size;
+			break;
+		case SPFS_LINK:
+			statbuf->st_mode = S_IFLNK | S_IRWXU | S_IRWXG | S_IRWXO;
+			statbuf->st_size = strlen(e->e.link->target);
+			break;
+	}
+
+	statbuf->st_uid = getuid();
+	if (e->ctime)
+		statbuf->st_ctime = e->ctime;
+	if (e->mtime)
+		statbuf->st_mtime = e->mtime;
+	if (e->atime)
+		statbuf->st_atime = e->atime;
+
+}
 void spfs_entity_dir_add_child(spfs_entity *parent, spfs_entity *child) {
 	g_return_if_fail(parent != NULL);
 	g_return_if_fail(child != NULL);
@@ -85,19 +110,46 @@ void spfs_entity_dir_add_child(spfs_entity *parent, spfs_entity *child) {
 	g_hash_table_insert(parent->e.dir->children, child->name, child);
 }
 
-void spfs_entity_link_set_target(spfs_entity *link, spfs_entity *target) {
+void spfs_entity_link_set_target(spfs_entity *link, gchar *target) {
 	g_return_if_fail(link != NULL);
 	g_return_if_fail(target != NULL);
 	g_return_if_fail(link->type == S_IFLNK);
 
 	link->e.link->target = target;
 }
+
+static gchar * sanitize_name(const gchar *n) {
+	gchar *san_name = g_strdup(n), *p = san_name;
+
+	while (*p != '\0') {
+		switch (*p) {
+			case '/': *p = ' '; break;
+			default: break;
+		}
+		++p;
+	}
+	return san_name;
+}
+
+bool spfs_entity_dir_has_child(spfs_dir *dir, const char *name) {
+	bool ret = false;
+	g_return_val_if_fail(dir != NULL, false);
+	gchar *san_name = sanitize_name(name);
+	ret = g_hash_table_lookup(dir->children, san_name) != NULL;
+	g_free(san_name);
+	return ret;
+}
+
 static spfs_entity * spfs_entity_create(const gchar *name, SpfsEntityType type) {
 	spfs_entity *e = g_new0(spfs_entity, 1);
 	e->type = type;
 	if (name != NULL) {
-		e->name = g_strdup(name);
+		e->name = sanitize_name(name);
 	}
+	time_t t = time(NULL);
+	e->atime = t;
+	e->ctime = t;
+	e->mtime = t;
 	return e;
 }
 
@@ -143,19 +195,17 @@ static gboolean spfs_entity_ht_key_compare(gconstpointer a, gconstpointer b) {
 	return (g_strcmp0(a, b) == 0);
 }
 
-spfs_entity * spfs_entity_file_create(const gchar *name, SpfsGetattrFunc getattr_func, SpfsReadFunc read_func) {
+spfs_entity * spfs_entity_file_create(const gchar *name, SpfsReadFunc read_func) {
 	g_return_val_if_fail(name != NULL, NULL);
 	spfs_entity *e = spfs_entity_create(name, SPFS_FILE);
-	e->getattr = getattr_func;
 	e->e.file = g_new0(spfs_file, 1);
 	e->e.file->read = read_func;
 	g_debug("created file %s", name);
 	return e;
 }
 
-spfs_entity * spfs_entity_dir_create(const gchar *name, SpfsGetattrFunc getattr_func, SpfsReaddirFunc readdir_func) {
+spfs_entity * spfs_entity_dir_create(const gchar *name, SpfsReaddirFunc readdir_func) {
 	spfs_entity *e = spfs_entity_create(name, SPFS_DIR);
-	e->getattr = getattr_func;
 	e->parent = NULL;
 	e->e.dir = g_new0(spfs_dir, 1);
 	e->e.dir->readdir = readdir_func;
@@ -170,14 +220,13 @@ spfs_entity * spfs_entity_dir_create(const gchar *name, SpfsGetattrFunc getattr_
 	return e;
 }
 
-spfs_entity *spfs_entity_root_create(SpfsGetattrFunc getattr_func, SpfsReaddirFunc readdir_func) {
-	return spfs_entity_dir_create(NULL, getattr_func, readdir_func);
+spfs_entity *spfs_entity_root_create(SpfsReaddirFunc readdir_func) {
+	return spfs_entity_dir_create(NULL, readdir_func);
 }
 
-spfs_entity *spfs_entity_link_create(const gchar *name, SpfsGetattrFunc getattr_func, SpfsReadlinkFunc readlink_func) {
+spfs_entity *spfs_entity_link_create(const gchar *name, SpfsReadlinkFunc readlink_func) {
 	g_return_val_if_fail(name != NULL, NULL);
 	spfs_entity *e = spfs_entity_create(name, SPFS_LINK);
-	e->getattr = getattr_func;
 	e->e.link = g_new(spfs_link, 1);
 	e->e.link->readlink = readlink_func;
 	g_debug("created link %s", name);

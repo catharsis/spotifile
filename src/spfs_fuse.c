@@ -20,129 +20,65 @@ struct spfs_data {
 
 
 size_t connection_file_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
-int connection_file_getattr(const char *path, struct stat *statbuf);
+
+int browse_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
 
 
-int search_file_getattr(const char *path, struct stat *statbuf);
-int browse_file_getattr(const char *path, struct stat *statbuf);
+static spfs_entity *create_artist_browse_dir(sp_artist *artist) {
+	g_return_val_if_fail(artist != NULL, NULL);
+	spfs_entity *artist_browse_dir = spfs_entity_find_path(SPFS_DATA->root, "/browse/artists");
+	sp_link *link = spotify_link_create_from_artist(artist);
+	if (!link) {
+		g_return_val_if_reached(NULL);
+	}
 
+	gchar artist_linkstring[1024] = {0, };
+	spotify_link_as_string(link, artist_linkstring, 1024);
 
-static void fill_dir_children(spfs_dir *dir, void **buf, fuse_fill_dir_t filler) {
+	if (spfs_entity_dir_has_child(artist_browse_dir->e.dir, artist_linkstring)) {
+		return NULL;
+	}
+
+	spfs_entity *artist_dir = spfs_entity_dir_create(artist_linkstring, NULL);
+
+	spfs_entity_dir_add_child(artist_dir, spfs_entity_file_create("name", NULL));
+	spfs_entity_dir_add_child(artist_dir, spfs_entity_file_create("biography", NULL));
+	spfs_entity_dir_add_child(artist_browse_dir, artist_dir);
+	return artist_dir;
+}
+
+static void fill_dir_children(spfs_dir *dir, void *buf, fuse_fill_dir_t filler) {
 	g_return_if_fail(dir != NULL);
+
+	if (g_hash_table_size(dir->children) == 0) {
+		g_debug("no children for directory");
+		return;
+	}
+
 	/* Autofill children*/
 	GHashTableIter iter;
 	gpointer epath, sube;
 	g_hash_table_iter_init (&iter, dir->children);
 	while (g_hash_table_iter_next (&iter, &epath, &sube))
 	{
-		filler(*buf, epath, NULL, 0);
+		spfs_entity *child = (spfs_entity *) sube;
+		struct stat statbuf;
+		memset(&statbuf, 0, sizeof(struct stat));
+		spfs_entity_stat(child, &statbuf);
+		filler(buf, epath, &statbuf, 0);
 	}
-}
-static spfs_entity *find_existing_parent(spfs_entity *root, const char *path) {
-	/* FIXME: This comment doesn't belong here
-	 * Go up the tree until we find something that can handle this request.
-	 * Since not all entities are materialized (but rather, generated on-the-fly), it is
-	 * not necessarily an error that we don't find an exact match here. Of
-	 * course, this means that the delegate needs to take care that the path received
-	 * actually something sensible from its own POV.
-	 */
-	spfs_entity *e = NULL;
-	gchar *searchpath = g_strdup(path), *tmp;
-	while ( (e = spfs_entity_find_path((SPFS_DATA)->root, searchpath)) == NULL) {
-		tmp = searchpath;
-		searchpath = g_path_get_dirname(searchpath);
-		g_free(tmp);
-	}
-
-	g_free(searchpath);
-	return e;
-}
-
-
-int spfs_dir_getattr(const char *path, struct stat *statbuf)
-{
-	memset(statbuf, 0, sizeof(struct stat));
-	statbuf->st_mode = S_IFDIR | 0755;
-	statbuf->st_nlink = 2;
-	return 0;
 }
 
 int spfs_getattr(const char *path, struct stat *statbuf)
 {
 	g_debug ("getattr: %s", path);
-	spfs_entity *e = find_existing_parent((SPFS_DATA)->root, path);
+	memset(statbuf, 0, sizeof(struct stat));
+	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
 	if (e != NULL) {
-		if (e->getattr != NULL)
-			return (e->getattr)(path, statbuf);
-		else if (e->type == SPFS_DIR)
-			return spfs_dir_getattr(path, statbuf);
-	}
-
-	return -ENOENT;
-}
-
-int connection_file_getattr(const char* path, struct stat *statbuf)
-{
-	if (strcmp("/connection", path) != 0) {
-		g_warn_if_reached();
-		return -ENOENT;
-	}
-	else {
-		statbuf->st_mode = S_IFREG | 0444;
-		statbuf->st_nlink = 1;
-		statbuf->st_size = 64;
-		statbuf->st_mtime = g_logged_in_at;
+		spfs_entity_stat(e, statbuf);
 		return 0;
 	}
-}
-
-int browse_dir_getattr(const char *path, struct stat *statbuf)
-{
-	if (g_strcmp0("/browse", path) == 0) {
-		statbuf->st_mtime = time(NULL);
-		statbuf->st_mode = S_IFDIR | 0755;
-	}
-	else {
-		statbuf->st_mode = S_IFDIR | 0755;
-		statbuf->st_mtime = time(NULL);
-	}
-	return 0;
-}
-
-int search_dir_getattr(const char *path, struct stat *statbuf)
-{
-	if (g_strcmp0("/search", path) == 0) {
-		/*search root*/
-		statbuf->st_mtime = time(NULL);
-		statbuf->st_mode = S_IFDIR | 0755;
-	}
-	else if (g_str_has_prefix(path, "/search/artists"))
-	{
-		/*artist search*/
-		char *dir = g_path_get_dirname(path);
-		if (g_strcmp0(path, "/search/artists") == 0) {
-			statbuf->st_mode = S_IFDIR | 0755;
-			statbuf->st_mtime = time(NULL);
-		}
-		else if (g_strcmp0(dir, "/search/artists") == 0) {
-			/* here we set up a directory, which if changed into will generate
-			 * a query for artists matching the directory name.
-			 * We defer the actual query, since executing it here might impact
-			 * performance due to shell tab completion, and other stat'ing shell extensions*/
-			statbuf->st_mode = S_IFDIR | 0755;
-			statbuf->st_mtime = time(NULL);
-		}
-		else {
-			/* This is a search result. */
-			statbuf->st_mode = S_IFLNK | 0755;
-			statbuf->st_mtime = time(NULL);
-		}
-		g_free(dir);
-	}
-	else {
-		g_return_val_if_reached(-ENOENT);
-	}
-	return 0;
+	return -ENOENT;
 }
 
 size_t connection_file_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
@@ -185,11 +121,7 @@ int spfs_readlink(const char *path, char *buf, size_t len) {
 	g_return_val_if_fail(e != NULL, -ENOENT);
 	g_return_val_if_fail(e->type == SPFS_LINK, -ENOENT);
 
-
-	spfs_entity *te = e->e.link->target;
-	gchar *target_path = spfs_entity_get_full_path(te);
-	strncpy(buf, target_path, len);
-	g_free(target_path);
+	strncpy(buf, e->e.link->target, len);
 	return 0;
 }
 
@@ -212,109 +144,55 @@ int browse_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 			g_warning("no artist");
 			return -ENOENT;
 		}
-
-		filler(buf, "name", NULL, 0);
-		filler(buf, "biography", NULL, 0);
 	}
 	g_free(dir);
 	return 0;
 }
 
-int search_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
+int playlists_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
-	g_debug ("search readdir: %s", path);
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
+	spfs_entity *playlists_dir= spfs_entity_find_path(SPFS_DATA->root, path);
 
-	gchar *dir = g_path_get_dirname(path);
-	if (g_strcmp0(dir, "/search/artists") == 0) {
-		/*artist query*/
-		gchar *query = g_path_get_basename(path);
-		GSList *artists;
-		g_debug("querying for artist: %s", query);
-		artists = spotify_artist_search(session, query);
-		if (artists != NULL) {
-			GSList *tmp = artists;
-			spfs_entity *artist_browse_dir = spfs_entity_find_path(SPFS_DATA->root, "/browse/artists");
-			spfs_entity *artist_search_dir = spfs_entity_find_path(SPFS_DATA->root, "/search/artists");
-			spfs_entity *this_search = spfs_entity_dir_create(query, NULL, NULL);
-			spfs_entity_dir_add_child(artist_search_dir,
-					this_search);
-			while (tmp != NULL) {
-				sp_artist *artist = (sp_artist *) tmp->data;
-				gchar *artist_name = g_strdup(spotify_artist_name(artist));
-				/* Replace slashes, since they are reserved and unescapable in
-				 * directory names.
-				 * Possibly, we could replace this with some
-				 * unicode symbol that resembles the usual slash. But that's for
-				 * another rainy day
-				gchar *p = artist_name;
-				while ((p = strchr(p, '/')) != NULL) {
-					*p = ' ';
-				}
-				*/
-				/* Create the target artist directory*/
-				sp_link *link = spotify_link_create_from_artist(artist);
-				if (!link) {
-					g_warning("no link");
-					return -ENOENT;
-				}
+	GSList *playlists = spotify_get_playlists(session);
+	if (playlists != NULL) {
+		GSList *tmp = playlists;
+		while (tmp != NULL) {
+			sp_playlist * pl = tmp->data;
+			const gchar *name = spotify_playlist_name(pl);
+			if (!spfs_entity_dir_has_child(playlists_dir->e.dir, name)) {
+				spfs_entity * pld =
+					spfs_entity_dir_create(name, NULL);
 
-				gchar artist_linkstring[1024] = {0, };
-				spotify_link_as_string(link, artist_linkstring, 1024);
-				spfs_entity *artist_dir = spfs_entity_dir_create(artist_linkstring,
-							browse_dir_getattr,
-							browse_dir_readdir);
-				spfs_entity_dir_add_child(artist_browse_dir, artist_dir);
-
-				spfs_entity *artist_search_link = spfs_entity_link_create(artist_name,
-						search_dir_getattr,
-						spfs_readlink);
-				spfs_entity_link_set_target(artist_search_link, artist_dir);
-				spfs_entity_dir_add_child(this_search, artist_search_link);
-
-				g_free(artist_name);
-				tmp = g_slist_next(tmp);
+				spfs_entity_dir_add_child(playlists_dir, pld);
 			}
-			fill_dir_children(this_search->e.dir, &buf, filler);
-			g_free(query);
-		}
-		else {
-			g_debug("no artist search result");
-			return -ENOENT;
+			tmp = g_slist_next(tmp);
 		}
 	}
-	g_free(dir);
 	return 0;
 }
 
 int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi)
 {
+	int ret = 0;
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
 	g_debug("readdir path:%s ", path);
-
-	spfs_entity *e = find_existing_parent((SPFS_DATA)->root, path);
+	spfs_entity *e = spfs_entity_find_path(SPFS_DATA->root, path);
 	if (!e || e->type != SPFS_DIR) {
 		return -ENOENT;
 	}
-
-	spfs_dir *dir = e->e.dir;
-
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
-
-	if (g_hash_table_size(dir->children) > 0) {
-		fill_dir_children(dir, &buf, filler);
-		return 0;
+	spfs_dir *dir = e->e.dir;
+	g_debug("filling existing dir %s ", path);
+	if (dir->readdir != NULL) {
+		ret = dir->readdir(path, buf, filler, offset, fi);
 	}
-	else if (dir->readdir != NULL) {
-		return dir->readdir(path, buf, filler, offset, fi);
-	}
-	else {
-		return -ENOENT;
-	}
+	fill_dir_children(e->e.dir, buf, filler);
+	return ret;
 }
 
 void *spfs_init(struct fuse_conn_info *conn)
@@ -324,44 +202,33 @@ void *spfs_init(struct fuse_conn_info *conn)
 	struct fuse_context *context = fuse_get_context();
 	struct spotifile_config *conf= (struct spotifile_config *) context->private_data;
 
-	spfs_entity *root = spfs_entity_root_create(spfs_dir_getattr, NULL);
+	spfs_entity *root = spfs_entity_root_create(NULL);
 
 	spfs_entity_dir_add_child(root,
 			spfs_entity_file_create(
 				"connection",
-				connection_file_getattr,
 				connection_file_read
 			));
 
-	spfs_entity *searchdir = spfs_entity_dir_create(
-				"search",
-				search_dir_getattr,
-				search_dir_readdir
-				);
-
-	spfs_entity_dir_add_child(searchdir,
-			spfs_entity_dir_create(
-				"artists",
-				search_dir_getattr,
-				search_dir_readdir
-				));
-
-	spfs_entity_dir_add_child(root, searchdir);
-
 	spfs_entity *browsedir = spfs_entity_dir_create(
 				"browse",
-				browse_dir_getattr,
-				browse_dir_readdir
+				NULL
 				);
 
 	spfs_entity_dir_add_child(browsedir,
 			spfs_entity_dir_create(
 				"artists",
-				browse_dir_getattr,
-				browse_dir_readdir
+				NULL
 				));
 
 	spfs_entity_dir_add_child(root, browsedir);
+
+	spfs_entity_dir_add_child(root,
+			spfs_entity_dir_create(
+				"playlists",
+				playlists_dir_readdir
+				)
+			);
 
 	data->root = root;
 	g_info("%s initialising ...", application_name);
@@ -390,7 +257,7 @@ struct fuse_operations spfs_operations = {
 	.getattr = spfs_getattr,
 	.read = spfs_read,
 	.readdir = spfs_readdir,
-	.readlink = spfs_readlink
+	.readlink = spfs_readlink,
 };
 
 struct fuse_operations spfs_get_fuse_operations() {

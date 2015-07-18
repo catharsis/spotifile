@@ -143,13 +143,25 @@ void spotify_threads_destroy()
 
 
 /* locking accessors */
+GSList *spotify_get_playlists(sp_session *session) {
+	GSList *playlists = NULL;
+	g_mutex_lock(&g_spotify_api_mutex);
+	sp_playlistcontainer *c = sp_session_playlistcontainer(session);
+	int i, num_playlists = sp_playlistcontainer_num_playlists(c);
+	for (i = 0; i < num_playlists; ++i) {
+		playlists = g_slist_append(playlists,
+				sp_playlistcontainer_playlist(c, i)
+				);
+	}
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return playlists;
+}
+
 sp_connectionstate spotify_connectionstate(sp_session * session) {
 	sp_connectionstate s;
-
 	g_mutex_lock(&g_spotify_api_mutex);
 	s = sp_session_connectionstate(session);
 	g_mutex_unlock(&g_spotify_api_mutex);
-
 	return s;
 }
 
@@ -220,6 +232,14 @@ const gchar * spotify_artist_name(sp_artist *artist) {
 	const gchar *name = NULL;
 	g_mutex_lock(&g_spotify_api_mutex);
 	name = sp_artist_name(artist);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return name;
+}
+
+const gchar * spotify_playlist_name(sp_playlist *playlist) {
+	const gchar *name = NULL;
+	g_mutex_lock(&g_spotify_api_mutex);
+	name = sp_playlist_name(playlist);
 	g_mutex_unlock(&g_spotify_api_mutex);
 	return name;
 }

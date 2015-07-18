@@ -7,22 +7,20 @@
 spfs_entity *root;
 void setup(void)
 {
-	root = spfs_entity_root_create(NULL, NULL);
+	root = spfs_entity_root_create(NULL);
 
 	spfs_entity_dir_add_child(root,
 			spfs_entity_file_create("foo",
-				NULL,
 				NULL));
 
 	spfs_entity_dir_add_child(root,
 			spfs_entity_file_create("bar",
-				NULL,
 				NULL));
 
-	spfs_entity *dir = spfs_entity_dir_create("baz", NULL, NULL);
-	spfs_entity_dir_add_child(dir, spfs_entity_file_create("qux", NULL, NULL));
-	spfs_entity *dir2 = spfs_entity_dir_create("xyzzy", NULL, NULL);
-	spfs_entity_dir_add_child(dir2, spfs_entity_link_create("blorf", NULL, NULL));
+	spfs_entity *dir = spfs_entity_dir_create("baz", NULL);
+	spfs_entity_dir_add_child(dir, spfs_entity_file_create("qux", NULL));
+	spfs_entity *dir2 = spfs_entity_dir_create("xyzzy", NULL);
+	spfs_entity_dir_add_child(dir2, spfs_entity_link_create("blorf", NULL));
 
 	spfs_entity_dir_add_child(dir, dir2);
 	spfs_entity_dir_add_child(root, dir);
