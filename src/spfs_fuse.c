@@ -101,10 +101,30 @@ size_t connection_file_read(const char *path, char *buf, size_t size, off_t offs
 	return size;
 }
 
+int spfs_open(const char *path, struct fuse_file_info *fi)
+{
+	g_debug("open: %s", path);
+	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
+	g_return_val_if_fail(e != NULL, -ENOENT);
+	fi->fh = (uint64_t)e;
+	return 0;
+
+}
+
+int spfs_opendir(const char *path, struct fuse_file_info *fi)
+{
+	g_debug("opendir: %s", path);
+	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
+	g_return_val_if_fail(e != NULL, -ENOENT);
+	g_return_val_if_fail(e->type == SPFS_DIR, -EINVAL);
+	fi->fh = (uint64_t)e;
+	return 0;
+}
+
 int spfs_read(const char *path, char *buf, size_t size, off_t offset,
 		struct fuse_file_info *fi)
 {
-	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
+	spfs_entity *e = (spfs_entity *) fi->fh;
 	g_return_val_if_fail(e->type == SPFS_FILE, -ENOENT);
 
 	if (e->e.file->read == NULL) {
@@ -149,11 +169,18 @@ int browse_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 	return 0;
 }
 
+/*readdir for a single playlist directory*/
+int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
+		struct fuse_file_info *fi) {
+	return 0;
+}
+
+/*readdir for the "root" playlists directory*/
 int playlists_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
-	spfs_entity *playlists_dir= spfs_entity_find_path(SPFS_DATA->root, path);
+	spfs_entity *playlists_dir = (spfs_entity *)fi->fh;
 
 	GSList *playlists = spotify_get_playlists(session);
 	if (playlists != NULL) {
@@ -163,12 +190,13 @@ int playlists_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, o
 			const gchar *name = spotify_playlist_name(pl);
 			if (!spfs_entity_dir_has_child(playlists_dir->e.dir, name)) {
 				spfs_entity * pld =
-					spfs_entity_dir_create(name, NULL);
+					spfs_entity_dir_create(name, playlist_dir_readdir);
 
 				spfs_entity_dir_add_child(playlists_dir, pld);
 			}
 			tmp = g_slist_next(tmp);
 		}
+		g_slist_free(playlists);
 	}
 	return 0;
 }
@@ -180,7 +208,7 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
 	g_debug("readdir path:%s ", path);
-	spfs_entity *e = spfs_entity_find_path(SPFS_DATA->root, path);
+	spfs_entity *e = (spfs_entity *)fi->fh;
 	if (!e || e->type != SPFS_DIR) {
 		return -ENOENT;
 	}
@@ -258,6 +286,8 @@ struct fuse_operations spfs_operations = {
 	.read = spfs_read,
 	.readdir = spfs_readdir,
 	.readlink = spfs_readlink,
+	.open = spfs_open,
+	.opendir = spfs_opendir
 };
 
 struct fuse_operations spfs_get_fuse_operations() {
