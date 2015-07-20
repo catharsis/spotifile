@@ -2,6 +2,7 @@
 #include "spfs_spotify.h"
 #include "spfs_fuse.h"
 #include "spfs_fuse_entity.h"
+#include "spfs_path.h"
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
@@ -20,9 +21,38 @@ struct spfs_data {
 
 
 size_t connection_file_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+size_t pcm_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
 
 int browse_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
 
+
+static gchar *relpath(spfs_entity *from, spfs_entity *to) {
+	gchar *frompath = spfs_entity_get_full_path(from);
+	gchar *topath = spfs_entity_get_full_path(to);
+
+	gchar * relpath = spfs_path_get_relative_path(frompath, topath);
+	g_free(frompath);
+	g_free(topath);
+	return relpath;
+}
+
+static spfs_entity *create_track_browse_dir(sp_track *track) {
+	g_return_val_if_fail(track != NULL, NULL);
+	spfs_entity *track_browse_dir = spfs_entity_find_path(SPFS_DATA->root, "/browse/tracks");
+	sp_link *link = spotify_link_create_from_track(track);
+
+	g_return_val_if_fail(link != NULL, NULL);
+	gchar track_linkstring[1024] = {0, };
+	spotify_link_as_string(link, track_linkstring, 1024);
+	if (spfs_entity_dir_has_child(track_browse_dir->e.dir, track_linkstring)) {
+		return NULL;
+	}
+	spfs_entity *track_dir = spfs_entity_dir_create(track_linkstring, NULL);
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_file_create("pcm", pcm_read));
+	spfs_entity_dir_add_child(track_browse_dir, track_dir);
+	return track_dir;
+}
 
 static spfs_entity *create_artist_browse_dir(sp_artist *artist) {
 	g_return_val_if_fail(artist != NULL, NULL);
@@ -79,6 +109,10 @@ int spfs_getattr(const char *path, struct stat *statbuf)
 		return 0;
 	}
 	return -ENOENT;
+}
+
+size_t pcm_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	return 0;
 }
 
 size_t connection_file_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
@@ -172,6 +206,32 @@ int browse_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 /*readdir for a single playlist directory*/
 int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
+
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	sp_playlist *pl = (sp_playlist *)e->auxdata;
+
+	if (!spotify_playlist_is_loaded(pl)) {
+		g_warning("Playlist (%s) not loaded, fix this bug ..", e->name);
+		return -ENOENT;
+	}
+
+	GSList *tracks = spotify_playlist_get_tracks(pl);
+	if (tracks != NULL) {
+		GSList *tmp = tracks;
+		while (tmp != NULL) {
+			sp_track *track = (sp_track *)tmp->data;
+			const gchar *trackname = spotify_track_name(track);
+			spfs_entity *track_browse_dir = create_track_browse_dir(track);
+			if (!spfs_entity_dir_has_child(e->e.dir, trackname)) {
+				spfs_entity *tracklink = spfs_entity_link_create(trackname, NULL);
+				spfs_entity_dir_add_child(e, tracklink);
+				spfs_entity_link_set_target(tracklink,
+						relpath(e, track_browse_dir));
+			}
+			tmp = g_slist_next(tmp);
+		}
+		g_slist_free(tracks);
+	}
 	return 0;
 }
 
@@ -191,6 +251,8 @@ int playlists_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, o
 			if (!spfs_entity_dir_has_child(playlists_dir->e.dir, name)) {
 				spfs_entity * pld =
 					spfs_entity_dir_create(name, playlist_dir_readdir);
+
+				pld->auxdata = pl;
 
 				spfs_entity_dir_add_child(playlists_dir, pld);
 			}
@@ -248,6 +310,13 @@ void *spfs_init(struct fuse_conn_info *conn)
 				"artists",
 				NULL
 				));
+
+	spfs_entity_dir_add_child(browsedir,
+			spfs_entity_dir_create(
+				"tracks",
+				NULL
+				));
+
 
 	spfs_entity_dir_add_child(root, browsedir);
 

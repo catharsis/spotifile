@@ -143,20 +143,6 @@ void spotify_threads_destroy()
 
 
 /* locking accessors */
-GSList *spotify_get_playlists(sp_session *session) {
-	GSList *playlists = NULL;
-	g_mutex_lock(&g_spotify_api_mutex);
-	sp_playlistcontainer *c = sp_session_playlistcontainer(session);
-	int i, num_playlists = sp_playlistcontainer_num_playlists(c);
-	for (i = 0; i < num_playlists; ++i) {
-		playlists = g_slist_append(playlists,
-				sp_playlistcontainer_playlist(c, i)
-				);
-	}
-	g_mutex_unlock(&g_spotify_api_mutex);
-	return playlists;
-}
-
 sp_connectionstate spotify_connectionstate(sp_session * session) {
 	sp_connectionstate s;
 	g_mutex_lock(&g_spotify_api_mutex);
@@ -236,6 +222,45 @@ const gchar * spotify_artist_name(sp_artist *artist) {
 	return name;
 }
 
+const gchar * spotify_track_name(sp_track *track) {
+	const gchar *name = NULL;
+	g_mutex_lock(&g_spotify_api_mutex);
+	name = sp_track_name(track);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return name;
+
+}
+GSList *spotify_playlist_get_tracks(sp_playlist *playlist) {
+	GSList *tracks = NULL;
+
+	g_mutex_lock(&g_spotify_api_mutex);
+	int i, num_playlists = sp_playlist_num_tracks(playlist);
+	for (i = 0; i < num_playlists; ++i) {
+		tracks = g_slist_append(tracks,
+				sp_playlist_track(playlist, i)
+				);
+	}
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return tracks;
+}
+
+GSList *spotify_get_playlists(sp_session *session) {
+	GSList *playlists = NULL;
+	g_mutex_lock(&g_spotify_api_mutex);
+	sp_playlistcontainer *c = sp_session_playlistcontainer(session);
+	if (!sp_playlistcontainer_is_loaded(c))
+		return NULL;
+	int i, num_playlists = sp_playlistcontainer_num_playlists(c);
+	for (i = 0; i < num_playlists; ++i) {
+		playlists = g_slist_append(playlists,
+				sp_playlistcontainer_playlist(c, i)
+				);
+	}
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return playlists;
+}
+
+
 const gchar * spotify_playlist_name(sp_playlist *playlist) {
 	const gchar *name = NULL;
 	g_mutex_lock(&g_spotify_api_mutex);
@@ -244,10 +269,28 @@ const gchar * spotify_playlist_name(sp_playlist *playlist) {
 	return name;
 }
 
+bool spotify_playlist_is_loaded(sp_playlist *playlist) {
+	bool ret = false;
+	g_mutex_lock(&g_spotify_api_mutex);
+	ret = sp_playlist_is_loaded(playlist);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return ret;
+}
+
 sp_link * spotify_link_create_from_artist(sp_artist *artist) {
 	sp_link *link = NULL;
 	g_mutex_lock(&g_spotify_api_mutex);
 	link = sp_link_create_from_artist(artist);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return link;
+}
+
+sp_link * spotify_link_create_from_track(sp_track *track) {
+	sp_link *link = NULL;
+	g_mutex_lock(&g_spotify_api_mutex);
+	link = sp_link_create_from_track(track,
+			0 // offset in ms
+			);
 	g_mutex_unlock(&g_spotify_api_mutex);
 	return link;
 }
@@ -273,6 +316,9 @@ int spotify_link_as_string(sp_link *link, char *buf, int buffer_size) {
 	int ret = 0;
 	g_mutex_lock(&g_spotify_api_mutex);
 	ret = sp_link_as_string(link, buf, buffer_size);
+	if (ret >= buffer_size) {
+		g_warning("Link truncated!");
+	}
 	g_mutex_unlock(&g_spotify_api_mutex);
 	return ret;
 

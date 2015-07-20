@@ -146,6 +146,7 @@ static spfs_entity * spfs_entity_create(const gchar *name, SpfsEntityType type) 
 	if (name != NULL) {
 		e->name = sanitize_name(name);
 	}
+	e->auxdata = NULL;
 	time_t t = time(NULL);
 	e->atime = t;
 	e->ctime = t;

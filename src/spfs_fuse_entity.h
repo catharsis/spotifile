@@ -39,6 +39,7 @@ typedef struct spfs_link {
 typedef struct spfs_entity {
 	gchar *name;
 	struct spfs_entity *parent;
+	void *auxdata;
 	SpfsEntityType type;
 	time_t ctime;
 	time_t atime;
