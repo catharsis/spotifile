@@ -53,6 +53,7 @@ typedef struct spfs_entity {
 
 gchar *spfs_entity_get_full_path(spfs_entity *e);
 spfs_entity * spfs_entity_find_path(spfs_entity *root, const gchar *path);
+unsigned int spfs_entity_get_direct_io(spfs_entity *e);
 void spfs_entity_stat(spfs_entity *e, struct stat *statbuf);
 void spfs_entity_destroy(spfs_entity *e);
 

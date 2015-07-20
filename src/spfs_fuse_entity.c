@@ -77,6 +77,15 @@ gchar *spfs_entity_get_full_path(spfs_entity *e) {
 	return p;
 }
 
+unsigned int spfs_entity_get_direct_io(spfs_entity *e) {
+	g_return_val_if_fail(e != NULL, 0);
+	if (e->type != SPFS_FILE || e->e.file->size > 0)
+		return 0;
+
+	return 1;
+
+}
+
 void spfs_entity_stat(spfs_entity *e, struct stat *statbuf) {
 	switch (e->type) {
 		case SPFS_DIR:

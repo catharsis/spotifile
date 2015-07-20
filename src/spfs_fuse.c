@@ -109,8 +109,7 @@ int spfs_getattr(const char *path, struct stat *statbuf)
 }
 
 int pcm_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	memcpy(buf, "foo\n", 4);
-	return 4;
+	return 0;
 }
 
 int connection_file_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
@@ -138,6 +137,7 @@ int spfs_open(const char *path, struct fuse_file_info *fi)
 	g_debug("open: %s", path);
 	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
 	g_return_val_if_fail(e != NULL, -ENOENT);
+	fi->direct_io = spfs_entity_get_direct_io(e);
 	fi->fh = (uint64_t)e;
 	return 0;
 
