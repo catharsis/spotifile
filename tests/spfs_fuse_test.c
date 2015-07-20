@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "spfs_fuse_entity.h"
+#include "spfs_path.h"
 
 
 spfs_entity *root;
@@ -30,6 +31,47 @@ void teardown(void)
 {
 	spfs_entity_destroy(root);
 }
+
+START_TEST(get_common_prefix)
+{
+	ck_assert_int_eq(9, spfs_path_common_prefix("/foo/bar/baz", "/foo/bar/bow"));
+	ck_assert_int_eq(1, spfs_path_common_prefix("/foo", "/bar"));
+	ck_assert_int_eq(1, spfs_path_common_prefix("/foo", "/foobar"));
+	ck_assert_int_eq(4, spfs_path_common_prefix("/foo", "/foo/bar"));
+	ck_assert_int_eq(5, spfs_path_common_prefix("/foo/", "/foo/bar"));
+	ck_assert_int_eq(5, spfs_path_common_prefix("/foo/b", "/foo/bar"));
+	ck_assert_int_eq(0, spfs_path_common_prefix("foo/bar", "/foo/bar"));
+	ck_assert_int_eq(0, spfs_path_common_prefix(NULL, "/foo/bar"));
+	ck_assert_int_eq(0, spfs_path_common_prefix("/foo", NULL));
+}
+END_TEST
+
+START_TEST(get_relative_path)
+{
+	struct tc {
+		const gchar *from_abspath;
+		const gchar *to_abspath;
+		const gchar *expected;
+	};
+
+	struct tc testcases[] = {
+		{"/baz", "/", ".."},
+		{"/", "/baz", "baz"},
+		{"/baz", "/baz", "."},
+		{"/bar/xyzzy/blorf", "/baz", "../../../baz"},
+		{"/bar", "/baz/xyzzy/blorf", "../baz/xyzzy/blorf"}
+	};
+
+	int i;
+	for (i = 0; i < (int)G_N_ELEMENTS(testcases); i++) {
+		gchar *actual = spfs_path_get_relative_path(testcases[i].from_abspath, testcases[i].to_abspath);
+		ck_assert(actual != NULL);
+		ck_assert_str_eq(testcases[i].expected, actual);
+		g_free(actual);
+	}
+}
+END_TEST
+
 
 START_TEST(find_entity)
 {
@@ -93,6 +135,10 @@ spfs_fuse_suite(void)
 	tcase_add_test(tc_data_structures, find_entity);
 	tcase_add_test(tc_data_structures, get_full_path);
 	suite_add_tcase(s, tc_data_structures);
+	TCase *tc_paths = tcase_create("Paths");
+	tcase_add_test(tc_paths, get_common_prefix);
+	tcase_add_test(tc_paths, get_relative_path);
+	suite_add_tcase(s, tc_paths);
 	return s;
 }
 
