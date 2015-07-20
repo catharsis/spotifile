@@ -20,11 +20,8 @@ struct spfs_data {
 #define SPFS_SP_SESSION ((sp_session *)((SPFS_DATA)->session))
 
 
-size_t connection_file_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
-size_t pcm_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
-
-int browse_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
-
+int connection_file_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+int pcm_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
 
 static gchar *relpath(spfs_entity *from, spfs_entity *to) {
 	gchar *frompath = spfs_entity_get_full_path(from);
@@ -111,11 +108,12 @@ int spfs_getattr(const char *path, struct stat *statbuf)
 	return -ENOENT;
 }
 
-size_t pcm_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	return 0;
+int pcm_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	memcpy(buf, "foo\n", 4);
+	return 4;
 }
 
-size_t connection_file_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+int connection_file_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
 	char *state_str =
@@ -158,15 +156,15 @@ int spfs_opendir(const char *path, struct fuse_file_info *fi)
 int spfs_read(const char *path, char *buf, size_t size, off_t offset,
 		struct fuse_file_info *fi)
 {
+	g_debug("read: %s", path);
 	spfs_entity *e = (spfs_entity *) fi->fh;
-	g_return_val_if_fail(e->type == SPFS_FILE, -ENOENT);
+	g_return_val_if_fail(e->type == SPFS_FILE, -EISDIR);
 
 	if (e->e.file->read == NULL) {
-		g_return_val_if_reached(-ENOENT);
+		g_return_val_if_reached(-EINVAL);
 	}
 
 	return e->e.file->read(path, buf, size, offset, fi);
-
 }
 
 int spfs_readlink(const char *path, char *buf, size_t len) {
@@ -176,30 +174,6 @@ int spfs_readlink(const char *path, char *buf, size_t len) {
 	g_return_val_if_fail(e->type == SPFS_LINK, -ENOENT);
 
 	strncpy(buf, e->e.link->target, len);
-	return 0;
-}
-
-int browse_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
-		struct fuse_file_info *fi) {
-
-	g_debug ("browse readdir: %s", path);
-	gchar *dir= g_path_get_dirname(path);
-	if (g_strcmp0(dir, "/browse/artists") == 0) {
-		/*FIXME: hardcoded artists :(*/
-		gchar *linkstr = g_path_get_basename(path);
-		sp_link *link = spotify_link_create_from_string(linkstr);
-		g_free(linkstr);
-		if (!link) {
-			g_warning("no link");
-			return -ENOENT;
-		}
-		sp_artist *artist = spotify_link_as_artist(link);
-		if (!artist) {
-			g_warning("no artist");
-			return -ENOENT;
-		}
-	}
-	g_free(dir);
 	return 0;
 }
 

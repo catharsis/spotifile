@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 #include <fuse.h>
 #include <stdbool.h>
-typedef size_t (*SpfsReadFunc)(const char *path, char *buff, size_t sz, off_t offset, struct fuse_file_info *fi);
+typedef int (*SpfsReadFunc)(const char *path, char *buff, size_t sz, off_t offset, struct fuse_file_info *fi);
 
 typedef int (*SpfsReaddirFunc)(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
 
