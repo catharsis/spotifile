@@ -11,6 +11,10 @@ void spotify_threads_destroy();
 sp_connectionstate spotify_connectionstate();
 const char * spotify_connectionstate_str();
 
+/*misc. playback*/
+bool spotify_play_track(sp_session *session, sp_track *track);
+ssize_t spotify_get_audio(char *buf, size_t size);
+
 /*artists*/
 GSList * spotify_artist_search(sp_session * session, const char *query);
 const gchar * spotify_artist_name(sp_artist * artist);

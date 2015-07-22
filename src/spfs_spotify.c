@@ -1,5 +1,6 @@
 #include "spotify-fs.h"
 #include "spfs_spotify.h"
+#include "spfs_audio.h"
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
@@ -11,6 +12,7 @@ time_t g_logged_in_at = (time_t) -1;
 /* thread globals */
 static bool g_main_thread_do_notify = false;
 static bool g_running = false;
+static spfs_audio_playback *g_playback;
 static GMutex g_spotify_notify_mutex;
 static GMutex g_spotify_api_mutex;
 static GCond g_spotify_notify_cond;
@@ -37,6 +39,44 @@ int spotify_login(sp_session * session, const char *username, const char *passwo
 		sp_session_login(session, username, password, 1, blob);
 	}
 	return 0;
+}
+
+
+
+static void spotify_start_playback(sp_session *session) {
+}
+
+static void spotify_audio_buffer_stats(sp_session *session, sp_audio_buffer_stats *stats) {
+	g_mutex_lock(&g_playback->mutex);
+	stats->samples = g_playback->nsamples;
+	stats->stutter = g_playback->stutter;
+	g_playback->stutter = 0;
+	g_mutex_unlock(&g_playback->mutex);
+}
+
+static int spotify_music_delivery(sp_session *session, const sp_audioformat *format, const void *frames, int num_frames) {
+	if (num_frames == 0)
+		return 0;
+
+	g_mutex_lock(&(g_playback->mutex));
+	if (g_playback->nsamples > (format->sample_rate * 2)) {
+		g_mutex_unlock(&g_playback->mutex);
+		return 0;
+	}
+	size_t s = num_frames * sizeof(int16_t) * format->channels;
+	spfs_audio *audio = malloc(sizeof(*audio) + s);
+	mempcpy(audio->samples, frames, s);
+
+	audio->nsamples = num_frames;
+
+	audio->rate = format->sample_rate;
+	audio->channels = format->channels;
+	g_queue_push_tail(g_playback->queue, audio);
+	g_playback->nsamples += num_frames;
+	g_cond_signal(&(g_playback->cond));
+	g_mutex_unlock(&(g_playback->mutex));
+
+	return num_frames;
 }
 
 static void spotify_log_message(sp_session *session, const char *message) {
@@ -84,6 +124,9 @@ static sp_session_callbacks spotify_callbacks = {
 	.connection_error = spotify_connection_error,
 	.logged_out = spotify_logged_out,
 	.log_message = spotify_log_message,
+	.music_delivery = spotify_music_delivery,
+	.get_audio_buffer_stats = spotify_audio_buffer_stats,
+	.start_playback = spotify_start_playback
 };
 
 sp_session * spotify_session_init(const char *username, const char *password, const char *blob)
@@ -129,6 +172,7 @@ void spotify_threads_init(sp_session *session)
 	g_cond_init(&g_spotify_notify_cond);
 	g_cond_init(&g_spotify_data_available);
 	g_running = true;
+	g_playback = spfs_audio_playback_new();
 	spotify_thread = g_thread_new("spotify", spotify_thread_start, session);
 }
 
@@ -151,26 +195,58 @@ sp_connectionstate spotify_connectionstate(sp_session * session) {
 	return s;
 }
 
-/* "public" convenience functions */
-const char * spotify_connectionstate_str(sp_connectionstate connectionstate) {
-	switch (connectionstate) {
-		case SP_CONNECTION_STATE_LOGGED_OUT:
-			return "logged out";
-			break;
-		case SP_CONNECTION_STATE_LOGGED_IN:
-			return "logged in";
-			break;
-		case SP_CONNECTION_STATE_DISCONNECTED:
-			return "disconnected";
-			break;
-		case SP_CONNECTION_STATE_OFFLINE:
-			return "offline";
-			break;
-		case SP_CONNECTION_STATE_UNDEFINED: /* FALLTHROUGH */
-		default:
-			return "undefined";
-			break;
+ssize_t spotify_get_audio(char *buf, size_t size) {
+
+	size_t sz = 0;
+	spfs_audio *audio = NULL;
+
+	g_mutex_lock(&(g_playback->mutex));
+	while (g_queue_is_empty(g_playback->queue)) {
+		g_playback->stutter += 1;
+		g_cond_wait(&(g_playback->cond), &(g_playback->mutex));
 	}
+	while ((audio = g_queue_pop_head(g_playback->queue)) != NULL) {
+		size_t seg_sz = audio->nsamples * sizeof(int16_t) * audio->channels;
+		if (sz + seg_sz < size) {
+			memcpy(buf+sz, audio->samples, seg_sz);
+			g_playback->nsamples -= audio->nsamples;
+			spfs_audio_free(audio);
+			sz += seg_sz;
+		}
+		else {
+			g_queue_push_head(g_playback->queue, audio);
+			break;
+		}
+	}
+	g_mutex_unlock(&(g_playback->mutex));
+	return sz;
+}
+
+
+bool spotify_play_track(sp_session *session, sp_track *track) {
+	g_return_val_if_fail(session != NULL, false);
+	g_return_val_if_fail(track != NULL, false);
+	if (g_playback->playing&& g_playback->playing == track)
+		return true;
+
+	bool ret = true;
+	spfs_audio_playback_flush(g_playback);
+	g_mutex_lock(&g_spotify_api_mutex);
+	if (!sp_track_is_loaded(track)) {
+		g_mutex_unlock(&g_spotify_api_mutex);
+		return false;
+	}
+	sp_error sperr = sp_session_player_load(session, track);
+	if(sperr == SP_ERROR_OK) {
+		sp_session_player_play(session, true);
+	}
+	else {
+		g_warning("Error loading track: %s", sp_error_message(sperr));
+		ret = false;
+	}
+	g_mutex_unlock(&g_spotify_api_mutex);
+	g_playback->playing = track;
+	return ret;
 }
 
 GSList *spotify_artist_search(sp_session * session, const char *query) {
@@ -360,3 +436,27 @@ void * spotify_thread_start(void *arg) {
 	g_debug("spotify session processing thread: ended");
 	return (void *)NULL;
 }
+
+/* "public" convenience functions */
+const char * spotify_connectionstate_str(sp_connectionstate connectionstate) {
+	switch (connectionstate) {
+		case SP_CONNECTION_STATE_LOGGED_OUT:
+			return "logged out";
+			break;
+		case SP_CONNECTION_STATE_LOGGED_IN:
+			return "logged in";
+			break;
+		case SP_CONNECTION_STATE_DISCONNECTED:
+			return "disconnected";
+			break;
+		case SP_CONNECTION_STATE_OFFLINE:
+			return "offline";
+			break;
+		case SP_CONNECTION_STATE_UNDEFINED: /* FALLTHROUGH */
+		default:
+			return "undefined";
+			break;
+	}
+}
+
+

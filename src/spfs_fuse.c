@@ -45,6 +45,7 @@ static spfs_entity *create_track_browse_dir(sp_track *track) {
 		return NULL;
 	}
 	spfs_entity *track_dir = spfs_entity_dir_create(track_linkstring, NULL);
+	track_dir->auxdata = track;
 	spfs_entity_dir_add_child(track_dir,
 			spfs_entity_file_create("pcm", pcm_read));
 	spfs_entity_dir_add_child(track_browse_dir, track_dir);
@@ -109,7 +110,16 @@ int spfs_getattr(const char *path, struct stat *statbuf)
 }
 
 int pcm_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	return 0;
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	sp_session *session = SPFS_SP_SESSION;
+	if (!spotify_play_track(session, e->parent->auxdata)) {
+		g_warning("Failed to play track!");
+		return 0;
+	}
+	ssize_t read = 0;
+	memset(buf, 0, size);
+	read = spotify_get_audio(buf, size);
+	return read;
 }
 
 int connection_file_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {

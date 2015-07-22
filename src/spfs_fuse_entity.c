@@ -92,7 +92,7 @@ void spfs_entity_stat(spfs_entity *e, struct stat *statbuf) {
 			statbuf->st_mode = S_IFDIR | S_IRUSR | S_IXUSR;
 			break;
 		case SPFS_FILE:
-			statbuf->st_mode = S_IFREG | S_IRUSR;
+			statbuf->st_mode = S_IFREG | S_IRUSR | S_IRGRP;
 			statbuf->st_size = e->e.file->size;
 			break;
 		case SPFS_LINK:
