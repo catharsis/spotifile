@@ -4,6 +4,13 @@ void spfs_audio_free(spfs_audio *audio) {
 	g_free(audio);
 }
 
+bool spfs_audio_playback_is_playing(spfs_audio_playback *playback) {
+	g_mutex_lock(&playback->mutex);
+	bool ret = playback->playing != NULL;
+	g_mutex_unlock(&playback->mutex);
+	return ret;
+
+}
 void spfs_audio_playback_flush(spfs_audio_playback *playback) {
 	g_mutex_lock(&playback->mutex);
 	spfs_audio *audio = NULL;
@@ -12,6 +19,8 @@ void spfs_audio_playback_flush(spfs_audio_playback *playback) {
 	}
 	playback->nsamples = 0;
 	playback->stutter = 0;
+	playback->playing = NULL;
+	g_cond_signal(&playback->cond);
 	g_mutex_unlock(&playback->mutex);
 }
 spfs_audio_playback *spfs_audio_playback_new(void) {

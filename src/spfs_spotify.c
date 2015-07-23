@@ -12,6 +12,7 @@ time_t g_logged_in_at = (time_t) -1;
 /* thread globals */
 static bool g_main_thread_do_notify = false;
 static bool g_running = false;
+static bool g_playback_done = false;
 static spfs_audio_playback *g_playback;
 static GMutex g_spotify_notify_mutex;
 static GMutex g_spotify_api_mutex;
@@ -44,6 +45,11 @@ int spotify_login(sp_session * session, const char *username, const char *passwo
 
 
 static void spotify_start_playback(sp_session *session) {
+}
+
+static void spotify_end_of_track(sp_session *session) {
+	spfs_audio_playback_flush(g_playback);
+	g_playback_done = true;
 }
 
 static void spotify_audio_buffer_stats(sp_session *session, sp_audio_buffer_stats *stats) {
@@ -126,7 +132,8 @@ static sp_session_callbacks spotify_callbacks = {
 	.log_message = spotify_log_message,
 	.music_delivery = spotify_music_delivery,
 	.get_audio_buffer_stats = spotify_audio_buffer_stats,
-	.start_playback = spotify_start_playback
+	.start_playback = spotify_start_playback,
+	.end_of_track = spotify_end_of_track
 };
 
 sp_session * spotify_session_init(const char *username, const char *password, const char *blob)
@@ -195,10 +202,23 @@ sp_connectionstate spotify_connectionstate(sp_session * session) {
 	return s;
 }
 
+bool spotify_is_playing(void) {
+	return spfs_audio_playback_is_playing(g_playback);
+}
+
 ssize_t spotify_get_audio(char *buf, size_t size) {
 
 	size_t sz = 0;
 	spfs_audio *audio = NULL;
+
+	if (!spotify_is_playing()) {
+		return 0;
+	}
+
+	if (g_playback_done) {
+		g_playback_done = false;
+		return 0;
+	}
 
 	g_mutex_lock(&(g_playback->mutex));
 	while (g_queue_is_empty(g_playback->queue)) {
@@ -226,11 +246,12 @@ ssize_t spotify_get_audio(char *buf, size_t size) {
 bool spotify_play_track(sp_session *session, sp_track *track) {
 	g_return_val_if_fail(session != NULL, false);
 	g_return_val_if_fail(track != NULL, false);
-	if (g_playback->playing&& g_playback->playing == track)
+	bool ret = true;
+	if (g_playback->playing && g_playback->playing == track)
 		return true;
 
-	bool ret = true;
 	spfs_audio_playback_flush(g_playback);
+	g_playback_done = false;
 	g_mutex_lock(&g_spotify_api_mutex);
 	if (!sp_track_is_loaded(track)) {
 		g_mutex_unlock(&g_spotify_api_mutex);

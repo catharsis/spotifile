@@ -18,6 +18,8 @@ typedef struct spfs_audio_playback {
 	sp_track *playing;
 } spfs_audio_playback;
 
+bool spfs_audio_playback_is_playing(spfs_audio_playback *playback);
+
 void spfs_audio_free(spfs_audio *audio);
 void spfs_audio_playback_flush(spfs_audio_playback *playback);
 spfs_audio_playback *spfs_audio_playback_new(void);
