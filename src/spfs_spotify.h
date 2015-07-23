@@ -21,12 +21,12 @@ const gchar * spotify_artist_name(sp_artist * artist);
 
 /*tracks*/
 const gchar * spotify_track_name(sp_track *track);
+int spotify_track_duration(sp_track *track);
 
 /*playlists*/
 GSList *spotify_playlist_get_tracks(sp_playlist *playlist);
 GSList *spotify_get_playlists(sp_session *session);
 const gchar * spotify_playlist_name(sp_playlist *playlist);
-bool spotify_playlist_is_loaded(sp_playlist *playlist);
 
 /*links*/
 sp_link * spotify_link_create_from_artist(sp_artist *artist);

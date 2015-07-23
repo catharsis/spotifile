@@ -23,6 +23,44 @@ static GThread *spotify_thread;
 /*foward declarations*/
 void * spotify_thread_start(void *arg);
 
+#define STRINGIFY(x) #x
+#define SPFS_WAIT_ON_FUNC(_Type) \
+	static bool wait_on_ ## _Type (sp_ ## _Type *_Type) { \
+		g_debug("waiting for " STRINGIFY(_Type ) " to load"); \
+		gint64 end_time = g_get_monotonic_time() + SPFS_CB_TIMEOUT_S * G_TIME_SPAN_SECOND; \
+		bool v = sp_ ## _Type ## _is_loaded ( _Type ); \
+		while (! v) { \
+			if (!g_cond_wait_until(&g_spotify_data_available, &g_spotify_api_mutex, end_time)) \
+			{ \
+				g_debug(STRINGIFY(_Type ) " still not loaded...giving up"); \
+				return false; \
+			} \
+		} \
+		return true; \
+	}
+
+
+#define SPFS_SPOTIFY_API_FUNC(_Ret, _Type, _Field) \
+	_Ret spotify_ ## _Type ## _ ## _Field (sp_ ## _Type * _Type) { \
+	_Ret _Field; \
+	g_mutex_lock(&g_spotify_api_mutex); \
+	if (!wait_on_ ## _Type( _Type )) { \
+		g_warning(STRINGIFY(_Type) " never loaded, unreliable " STRINGIFY(_Field) " information"); \
+	} \
+	_Field = sp_ ## _Type ## _ ## _Field (_Type); \
+	g_mutex_unlock(&g_spotify_api_mutex); \
+	return _Field; \
+}
+
+
+SPFS_WAIT_ON_FUNC(image)
+SPFS_WAIT_ON_FUNC(artist)
+SPFS_WAIT_ON_FUNC(album)
+SPFS_WAIT_ON_FUNC(track)
+SPFS_WAIT_ON_FUNC(playlist)
+SPFS_WAIT_ON_FUNC(user)
+SPFS_WAIT_ON_FUNC(playlistcontainer)
+
 int spotify_login(sp_session * session, const char *username, const char *password, const char *blob) {
 	if (username == NULL) {
 		char reloginname[256];
@@ -311,26 +349,21 @@ GSList *spotify_artist_search(sp_session * session, const char *query) {
 	return artists;
 }
 
-const gchar * spotify_artist_name(sp_artist *artist) {
-	const gchar *name = NULL;
-	g_mutex_lock(&g_spotify_api_mutex);
-	name = sp_artist_name(artist);
-	g_mutex_unlock(&g_spotify_api_mutex);
-	return name;
-}
+SPFS_SPOTIFY_API_FUNC(const gchar *, playlist, name)
+SPFS_SPOTIFY_API_FUNC(const gchar *, artist, name)
 
-const gchar * spotify_track_name(sp_track *track) {
-	const gchar *name = NULL;
-	g_mutex_lock(&g_spotify_api_mutex);
-	name = sp_track_name(track);
-	g_mutex_unlock(&g_spotify_api_mutex);
-	return name;
+SPFS_SPOTIFY_API_FUNC(const gchar *, track, name)
+SPFS_SPOTIFY_API_FUNC(int, track, duration)
 
-}
 GSList *spotify_playlist_get_tracks(sp_playlist *playlist) {
 	GSList *tracks = NULL;
 
 	g_mutex_lock(&g_spotify_api_mutex);
+	if (!wait_on_playlist(playlist)) {
+		g_warn_if_reached();
+		g_mutex_unlock(&g_spotify_api_mutex);
+		return NULL;
+	}
 	int i, num_playlists = sp_playlist_num_tracks(playlist);
 	for (i = 0; i < num_playlists; ++i) {
 		tracks = g_slist_append(tracks,
@@ -345,8 +378,11 @@ GSList *spotify_get_playlists(sp_session *session) {
 	GSList *playlists = NULL;
 	g_mutex_lock(&g_spotify_api_mutex);
 	sp_playlistcontainer *c = sp_session_playlistcontainer(session);
-	if (!sp_playlistcontainer_is_loaded(c))
+	if (!wait_on_playlistcontainer(c)) {
+		g_warn_if_reached();
+		g_mutex_unlock(&g_spotify_api_mutex);
 		return NULL;
+	}
 	int i, num_playlists = sp_playlistcontainer_num_playlists(c);
 	for (i = 0; i < num_playlists; ++i) {
 		playlists = g_slist_append(playlists,
@@ -355,23 +391,6 @@ GSList *spotify_get_playlists(sp_session *session) {
 	}
 	g_mutex_unlock(&g_spotify_api_mutex);
 	return playlists;
-}
-
-
-const gchar * spotify_playlist_name(sp_playlist *playlist) {
-	const gchar *name = NULL;
-	g_mutex_lock(&g_spotify_api_mutex);
-	name = sp_playlist_name(playlist);
-	g_mutex_unlock(&g_spotify_api_mutex);
-	return name;
-}
-
-bool spotify_playlist_is_loaded(sp_playlist *playlist) {
-	bool ret = false;
-	g_mutex_lock(&g_spotify_api_mutex);
-	ret = sp_playlist_is_loaded(playlist);
-	g_mutex_unlock(&g_spotify_api_mutex);
-	return ret;
 }
 
 sp_link * spotify_link_create_from_artist(sp_artist *artist) {
