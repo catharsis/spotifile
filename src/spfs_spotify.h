@@ -22,6 +22,12 @@ const gchar * spotify_artist_name(sp_artist * artist);
 /*tracks*/
 const gchar * spotify_track_name(sp_track *track);
 int spotify_track_duration(sp_track *track);
+int spotify_track_index(sp_track *track);
+int spotify_track_disc(sp_track *track);
+int spotify_track_popularity(sp_track *track);
+bool spotify_track_is_starred(sp_session *session, sp_track *track);
+bool spotify_track_is_local(sp_session *session, sp_track *track);
+bool spotify_track_is_autolinked(sp_session *session, sp_track *track);
 
 /*playlists*/
 GSList *spotify_playlist_get_tracks(sp_playlist *playlist);

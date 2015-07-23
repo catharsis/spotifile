@@ -23,6 +23,12 @@ struct spfs_data {
 int connection_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
 int pcm_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
 int duration_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+int popularity_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+int index_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+int disc_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+int is_starred_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+int is_local_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+int is_autolinked_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
 
 static gchar *relpath(spfs_entity *from, spfs_entity *to) {
 	gchar *frompath = spfs_entity_get_full_path(from);
@@ -52,6 +58,24 @@ static spfs_entity *create_track_browse_dir(sp_track *track) {
 
 	spfs_entity_dir_add_child(track_dir,
 			spfs_entity_file_create("duration", duration_read));
+
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_file_create("popularity", popularity_read));
+
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_file_create("index", index_read));
+
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_file_create("disc", disc_read));
+
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_file_create("starred", is_starred_read));
+
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_file_create("local", is_local_read));
+
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_file_create("autolinked", is_autolinked_read));
 
 	spfs_entity_dir_add_child(track_browse_dir, track_dir);
 	return track_dir;
@@ -122,6 +146,53 @@ int spfs_getattr(const char *path, struct stat *statbuf)
 	} \
 	else _Sz = 0;  } while (0)
 
+int is_starred_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	char *str = spotify_track_is_starred(SPFS_SP_SESSION, e->parent->auxdata) ? "1" : "0";
+	READ_OFFSET(str, buf, size, offset);
+	return size;
+}
+
+int is_local_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	char *str = spotify_track_is_local(SPFS_SP_SESSION, e->parent->auxdata) ? "1" : "0";
+	READ_OFFSET(str, buf, size, offset);
+	return size;
+}
+
+int is_autolinked_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	char *str = spotify_track_is_autolinked(SPFS_SP_SESSION, e->parent->auxdata) ? "1" : "0";
+	READ_OFFSET(str, buf, size, offset);
+	return size;
+}
+
+int disc_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	gchar *str = g_strdup_printf("%d",
+			spotify_track_disc(e->parent->auxdata));
+	READ_OFFSET(str, buf, size, offset);
+	g_free(str);
+	return size;
+}
+
+int index_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	gchar *str = g_strdup_printf("%d",
+			spotify_track_index(e->parent->auxdata));
+	READ_OFFSET(str, buf, size, offset);
+	g_free(str);
+	return size;
+}
+
+int popularity_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	gchar *str = g_strdup_printf("%d",
+			spotify_track_popularity(e->parent->auxdata));
+	READ_OFFSET(str, buf, size, offset);
+	g_free(str);
+	return size;
+}
 
 int duration_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
