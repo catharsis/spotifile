@@ -170,7 +170,6 @@ static void spotify_notify_main_thread(sp_session *session)
 	g_main_thread_do_notify = true;
 	g_cond_signal(&g_spotify_notify_cond);
 	g_mutex_unlock(&g_spotify_notify_mutex);
-
 }
 
 static sp_session_callbacks spotify_callbacks = {
@@ -372,6 +371,7 @@ SPFS_SPOTIFY_API_FUNC(int, track, duration)
 SPFS_SPOTIFY_API_FUNC(int, track, disc)
 SPFS_SPOTIFY_API_FUNC(int, track, index)
 SPFS_SPOTIFY_API_FUNC(int, track, popularity)
+SPFS_SPOTIFY_API_FUNC(sp_track_offline_status, track, offline_get_status)
 SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_starred)
 SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_local)
 SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_autolinked)
@@ -513,11 +513,32 @@ const char * spotify_connectionstate_str(sp_connectionstate connectionstate) {
 		case SP_CONNECTION_STATE_OFFLINE:
 			return "offline";
 			break;
-		case SP_CONNECTION_STATE_UNDEFINED: /* FALLTHROUGH */
-		default:
+		case SP_CONNECTION_STATE_UNDEFINED:
 			return "undefined";
 			break;
 	}
+	return "undefined";
 }
 
 
+const char * spotify_track_offline_status_str(sp_track_offline_status offlinestatus) {
+	switch (offlinestatus) {
+		case SP_TRACK_OFFLINE_NO:
+			return "Not marked for offline"; break;
+		case SP_TRACK_OFFLINE_WAITING:
+			return "Waiting for download"; break;
+		case SP_TRACK_OFFLINE_DOWNLOADING:
+			return "Currently downloading."; break;
+		case SP_TRACK_OFFLINE_DONE:
+			return "Downloaded OK and can be played."; break;
+		case SP_TRACK_OFFLINE_ERROR:
+			return "Error during download."; break;
+		case SP_TRACK_OFFLINE_DONE_EXPIRED:
+			return "Downloaded OK but not playable due to expiry."; break;
+		case SP_TRACK_OFFLINE_LIMIT_EXCEEDED:
+			return "Waiting because device have reached max number of allowed tracks."; break;
+		case SP_TRACK_OFFLINE_DONE_RESYNC:
+			return "Downloaded OK and available but scheduled for re-download."; break;
+	}
+	return "undefined";
+}

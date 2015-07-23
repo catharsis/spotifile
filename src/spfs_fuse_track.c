@@ -22,6 +22,15 @@ static int is_autolinked_read(const char *path, char *buf, size_t size, off_t of
 	return size;
 }
 
+static int offlinestatus_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	const char *str = spotify_track_offline_status_str(
+			spotify_track_offline_get_status(e->parent->auxdata)
+			);
+	READ_OFFSET(str, buf, size, offset);
+	return size;
+}
+
 static int disc_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
 	gchar *str = g_strdup_printf("%d",
@@ -107,6 +116,9 @@ spfs_entity *create_track_browse_dir(sp_track *track) {
 
 	spfs_entity_dir_add_child(track_dir,
 			spfs_entity_file_create("autolinked", is_autolinked_read));
+
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_file_create("offlinestatus", offlinestatus_read));
 
 	spfs_entity_dir_add_child(track_browse_dir, track_dir);
 	return track_dir;
