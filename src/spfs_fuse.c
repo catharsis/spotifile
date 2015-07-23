@@ -20,8 +20,9 @@ struct spfs_data {
 #define SPFS_SP_SESSION ((sp_session *)((SPFS_DATA)->session))
 
 
-int connection_file_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+int connection_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
 int pcm_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+int duration_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
 
 static gchar *relpath(spfs_entity *from, spfs_entity *to) {
 	gchar *frompath = spfs_entity_get_full_path(from);
@@ -48,6 +49,10 @@ static spfs_entity *create_track_browse_dir(sp_track *track) {
 	track_dir->auxdata = track;
 	spfs_entity_dir_add_child(track_dir,
 			spfs_entity_file_create("pcm", pcm_read));
+
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_file_create("duration", duration_read));
+
 	spfs_entity_dir_add_child(track_browse_dir, track_dir);
 	return track_dir;
 }
@@ -109,35 +114,44 @@ int spfs_getattr(const char *path, struct stat *statbuf)
 	return -ENOENT;
 }
 
+#define READ_OFFSET(_Str, _Buf, _Sz, _Off) do {\
+	if ((strlen(_Str)) > (size_t)_Off) { \
+		if ( _Off + _Sz > strlen(_Str)) \
+			_Sz = strlen(_Str) - _Off; \
+		memcpy(_Buf, _Str + _Off, _Sz); \
+	} \
+	else _Sz = 0;  } while (0)
+
+
+int duration_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	gchar *str = g_strdup_printf("%d",
+			spotify_track_duration(e->parent->auxdata));
+	READ_OFFSET(str, buf, size, offset);
+	g_free(str);
+	return size;
+}
+
 int pcm_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
 	sp_session *session = SPFS_SP_SESSION;
+
 	if (!spotify_play_track(session, e->parent->auxdata)) {
 		g_warning("Failed to play track!");
 		return 0;
 	}
-	ssize_t read = 0;
 	memset(buf, 0, size);
-	read = spotify_get_audio(buf, size);
+	size_t read = spotify_get_audio(buf, size);
 	return read;
 }
 
-int connection_file_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+int connection_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
 	char *state_str =
 		g_strdup(spotify_connectionstate_str(spotify_connectionstate(session)));
 
-	size_t len = 0;
-
-	if ((len = strlen(state_str)) > (size_t)offset) {
-		if ( offset + size > len)
-			size = len - offset;
-		memcpy(buf, state_str + offset, size);
-	}
-	else
-		size = 0;
-
+	READ_OFFSET(state_str, buf, size, offset);
 	g_free(state_str);
 	return size;
 }
@@ -193,11 +207,6 @@ int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 
 	spfs_entity *e = (spfs_entity *)fi->fh;
 	sp_playlist *pl = (sp_playlist *)e->auxdata;
-
-	if (!spotify_playlist_is_loaded(pl)) {
-		g_warning("Playlist (%s) not loaded, fix this bug ..", e->name);
-		return -ENOENT;
-	}
 
 	GSList *tracks = spotify_playlist_get_tracks(pl);
 	if (tracks != NULL) {
@@ -281,7 +290,7 @@ void *spfs_init(struct fuse_conn_info *conn)
 	spfs_entity_dir_add_child(root,
 			spfs_entity_file_create(
 				"connection",
-				connection_file_read
+				connection_read
 			));
 
 	spfs_entity *browsedir = spfs_entity_dir_create(
