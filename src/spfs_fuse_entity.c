@@ -1,4 +1,5 @@
 #include "spfs_fuse_entity.h"
+#include "spfs_path.h"
 #include <string.h>
 #include <unistd.h>
 
@@ -77,6 +78,19 @@ gchar *spfs_entity_get_full_path(spfs_entity *e) {
 	return p;
 }
 
+gchar *relpath(spfs_entity *from, spfs_entity *to) {
+	gchar *frompath = spfs_entity_get_full_path(from);
+	gchar *topath = spfs_entity_get_full_path(to);
+
+	gchar * relpath = spfs_path_get_relative_path(frompath, topath);
+	if (!relpath)
+		g_warn_if_reached();
+
+	g_free(frompath);
+	g_free(topath);
+	return relpath;
+}
+
 unsigned int spfs_entity_get_direct_io(spfs_entity *e) {
 	g_return_val_if_fail(e != NULL, 0);
 	if (e->type != SPFS_FILE || e->e.file->size > 0)
@@ -97,7 +111,8 @@ void spfs_entity_stat(spfs_entity *e, struct stat *statbuf) {
 			break;
 		case SPFS_LINK:
 			statbuf->st_mode = S_IFLNK | S_IRWXU | S_IRWXG | S_IRWXO;
-			statbuf->st_size = strlen(e->e.link->target);
+			if (e->e.link->target)
+				statbuf->st_size = strlen(e->e.link->target);
 			break;
 	}
 
@@ -119,12 +134,13 @@ void spfs_entity_dir_add_child(spfs_entity *parent, spfs_entity *child) {
 	g_hash_table_insert(parent->e.dir->children, child->name, child);
 }
 
-void spfs_entity_link_set_target(spfs_entity *link, gchar *target) {
+void spfs_entity_link_set_target(spfs_entity *link, const gchar *target) {
 	g_return_if_fail(link != NULL);
 	g_return_if_fail(target != NULL);
 	g_return_if_fail(link->type == S_IFLNK);
 
-	link->e.link->target = target;
+	g_free(link->e.link->target);
+	link->e.link->target = g_strdup(target);
 }
 
 static gchar * sanitize_name(const gchar *n) {
@@ -140,13 +156,16 @@ static gchar * sanitize_name(const gchar *n) {
 	return san_name;
 }
 
-bool spfs_entity_dir_has_child(spfs_dir *dir, const char *name) {
-	bool ret = false;
+spfs_entity * spfs_entity_dir_get_child(spfs_dir *dir, const char *name) {
 	g_return_val_if_fail(dir != NULL, false);
 	gchar *san_name = sanitize_name(name);
-	ret = g_hash_table_lookup(dir->children, san_name) != NULL;
+	spfs_entity *e = g_hash_table_lookup(dir->children, san_name);
 	g_free(san_name);
-	return ret;
+	return e;
+}
+
+bool spfs_entity_dir_has_child(spfs_dir *dir, const char *name) {
+	return spfs_entity_dir_get_child(dir, name) != NULL;
 }
 
 static spfs_entity * spfs_entity_create(const gchar *name, SpfsEntityType type) {
@@ -239,6 +258,7 @@ spfs_entity *spfs_entity_link_create(const gchar *name, SpfsReadlinkFunc readlin
 	spfs_entity *e = spfs_entity_create(name, SPFS_LINK);
 	e->e.link = g_new(spfs_link, 1);
 	e->e.link->readlink = readlink_func;
+	e->e.link->target = g_strdup(e->name);
 	g_debug("created link %s", name);
 	return e;
 }

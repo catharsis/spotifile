@@ -1,4 +1,5 @@
 #include "spfs_fuse_track.h"
+#include "spfs_fuse_artist.h"
 #include "spfs_spotify.h"
 
 static int is_starred_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
@@ -28,6 +29,14 @@ static int offlinestatus_read(const char *path, char *buf, size_t size, off_t of
 			spotify_track_offline_get_status(e->parent->auxdata)
 			);
 	READ_OFFSET(str, buf, size, offset);
+	return size;
+}
+
+static int name_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	gchar *str = g_strdup(spotify_track_name(e->parent->auxdata));
+	READ_OFFSET(str, buf, size, offset);
+	g_free(str);
 	return size;
 }
 
@@ -80,6 +89,26 @@ static int pcm_read(const char *path, char *buf, size_t size, off_t offset, stru
 	return read;
 }
 
+int artists_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
+		struct fuse_file_info *fi) {
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	sp_track *track = e->parent->auxdata;
+	int num_artists = spotify_track_num_artists(track);
+	for (int i = 0; i < num_artists; ++i) {
+		sp_artist *artist = spotify_track_artist(track, i);
+		const gchar *artistname = spotify_artist_name(artist);
+		spfs_entity *artist_browse_dir = create_artist_browse_dir(artist);
+		if (!spfs_entity_dir_has_child(e->e.dir, artistname)) {
+			spfs_entity *artist_link = spfs_entity_link_create(artistname, NULL);
+			spfs_entity_dir_add_child(e, artist_link);
+			gchar *rpath = relpath(e, artist_browse_dir);
+			spfs_entity_link_set_target(artist_link, rpath);
+			g_free(rpath);
+		}
+	}
+	return 0;
+}
+
 spfs_entity *create_track_browse_dir(sp_track *track) {
 	g_return_val_if_fail(track != NULL, NULL);
 	spfs_entity *track_browse_dir = spfs_entity_find_path(SPFS_DATA->root, "/browse/tracks");
@@ -93,6 +122,10 @@ spfs_entity *create_track_browse_dir(sp_track *track) {
 	}
 	spfs_entity *track_dir = spfs_entity_dir_create(track_linkstring, NULL);
 	track_dir->auxdata = track;
+
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_file_create("name", name_read));
+
 	spfs_entity_dir_add_child(track_dir,
 			spfs_entity_file_create("pcm", pcm_read));
 
@@ -120,6 +153,8 @@ spfs_entity *create_track_browse_dir(sp_track *track) {
 	spfs_entity_dir_add_child(track_dir,
 			spfs_entity_file_create("offlinestatus", offlinestatus_read));
 
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_dir_create("artists", artists_readdir));
 	spfs_entity_dir_add_child(track_browse_dir, track_dir);
 	return track_dir;
 }

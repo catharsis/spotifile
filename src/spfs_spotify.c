@@ -51,6 +51,18 @@ void * spotify_thread_start(void *arg);
 	return _Field; \
 	}
 
+#define SPFS_SPOTIFY_IDX_API_FUNC(_Ret, _Type, _Field) \
+	_Ret spotify_ ## _Type ## _ ## _Field (sp_ ## _Type * _Type, int index) { \
+	_Ret _Field; \
+	g_mutex_lock(&g_spotify_api_mutex); \
+	if (!wait_on_ ## _Type( _Type )) { \
+		g_warning(STRINGIFY(_Type) " never loaded, unreliable " STRINGIFY(_Field) " information"); \
+	} \
+	_Field = sp_ ## _Type ## _ ## _Field (_Type, index); \
+	g_mutex_unlock(&g_spotify_api_mutex); \
+	return _Field; \
+}
+
 #define SPFS_SPOTIFY_API_FUNC(_Ret, _Type, _Field) \
 	_Ret spotify_ ## _Type ## _ ## _Field (sp_ ## _Type * _Type) { \
 	_Ret _Field; \
@@ -371,7 +383,9 @@ SPFS_SPOTIFY_API_FUNC(int, track, duration)
 SPFS_SPOTIFY_API_FUNC(int, track, disc)
 SPFS_SPOTIFY_API_FUNC(int, track, index)
 SPFS_SPOTIFY_API_FUNC(int, track, popularity)
+SPFS_SPOTIFY_API_FUNC(int, track, num_artists)
 SPFS_SPOTIFY_API_FUNC(sp_track_offline_status, track, offline_get_status)
+SPFS_SPOTIFY_IDX_API_FUNC(sp_artist *, track, artist)
 SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_starred)
 SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_local)
 SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_autolinked)

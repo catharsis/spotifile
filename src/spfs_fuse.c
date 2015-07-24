@@ -11,39 +11,6 @@
 #include <glib.h>
 extern time_t g_logged_in_at; /*FIXME: get rid of this */
 
-static gchar *relpath(spfs_entity *from, spfs_entity *to) {
-	gchar *frompath = spfs_entity_get_full_path(from);
-	gchar *topath = spfs_entity_get_full_path(to);
-
-	gchar * relpath = spfs_path_get_relative_path(frompath, topath);
-	g_free(frompath);
-	g_free(topath);
-	return relpath;
-}
-
-static spfs_entity *create_artist_browse_dir(sp_artist *artist) {
-	g_return_val_if_fail(artist != NULL, NULL);
-	spfs_entity *artist_browse_dir = spfs_entity_find_path(SPFS_DATA->root, "/browse/artists");
-	sp_link *link = spotify_link_create_from_artist(artist);
-	if (!link) {
-		g_return_val_if_reached(NULL);
-	}
-
-	gchar artist_linkstring[1024] = {0, };
-	spotify_link_as_string(link, artist_linkstring, 1024);
-
-	if (spfs_entity_dir_has_child(artist_browse_dir->e.dir, artist_linkstring)) {
-		return NULL;
-	}
-
-	spfs_entity *artist_dir = spfs_entity_dir_create(artist_linkstring, NULL);
-
-	spfs_entity_dir_add_child(artist_dir, spfs_entity_file_create("name", NULL));
-	spfs_entity_dir_add_child(artist_dir, spfs_entity_file_create("biography", NULL));
-	spfs_entity_dir_add_child(artist_browse_dir, artist_dir);
-	return artist_dir;
-}
-
 static void fill_dir_children(spfs_dir *dir, void *buf, fuse_fill_dir_t filler) {
 	g_return_if_fail(dir != NULL);
 
@@ -151,8 +118,10 @@ int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 			if (!spfs_entity_dir_has_child(e->e.dir, trackname)) {
 				spfs_entity *tracklink = spfs_entity_link_create(trackname, NULL);
 				spfs_entity_dir_add_child(e, tracklink);
-				spfs_entity_link_set_target(tracklink,
-						relpath(e, track_browse_dir));
+				gchar *rpath = relpath(e, track_browse_dir);
+				spfs_entity_link_set_target(tracklink, rpath);
+				g_free(rpath);
+
 			}
 			tmp = g_slist_next(tmp);
 		}

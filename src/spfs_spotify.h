@@ -16,6 +16,7 @@ const char * spotify_track_offline_status_str(sp_track_offline_status);
 bool spotify_play_track(sp_session *session, sp_track *track);
 ssize_t spotify_get_audio(char *buf, size_t size);
 bool spotify_is_playing(void);
+
 /*artists*/
 GSList * spotify_artist_search(sp_session * session, const char *query);
 const gchar * spotify_artist_name(sp_artist * artist);
@@ -26,10 +27,12 @@ int spotify_track_duration(sp_track *track);
 int spotify_track_index(sp_track *track);
 int spotify_track_disc(sp_track *track);
 int spotify_track_popularity(sp_track *track);
+int spotify_track_num_artists(sp_track *track);
 bool spotify_track_is_starred(sp_session *session, sp_track *track);
 bool spotify_track_is_local(sp_session *session, sp_track *track);
 bool spotify_track_is_autolinked(sp_session *session, sp_track *track);
 sp_track_offline_status spotify_track_offline_get_status(sp_track *track);
+sp_artist *spotify_track_artist(sp_track *track, int index);
 
 /*playlists*/
 GSList *spotify_playlist_get_tracks(sp_playlist *playlist);
