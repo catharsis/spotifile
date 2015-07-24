@@ -55,7 +55,33 @@ static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_ar
 
 void spfs_log_handler(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
 	FILE *f = (FILE *)user_data;
-	fprintf(f, "%s: %s\n", application_name, message);
+	char lvl;
+	switch (log_level) {
+		case G_LOG_LEVEL_ERROR:
+			lvl = 'E';
+			break;
+		case G_LOG_LEVEL_CRITICAL:
+			lvl = 'C';
+			break;
+		case G_LOG_LEVEL_WARNING:
+			lvl = 'W';
+			break;
+		case G_LOG_LEVEL_MESSAGE:
+			lvl = 'M';
+			break;
+		case G_LOG_LEVEL_INFO:
+			lvl = 'I';
+			break;
+		case G_LOG_LEVEL_DEBUG:
+			lvl = 'D';
+			break;
+		default:
+			g_warn_if_reached();
+			lvl = '?';
+			break;
+
+	}
+	fprintf(f, "[%c] %s: %s\n", lvl, application_name, message);
 	fflush(f);
 }
 
