@@ -118,7 +118,7 @@ spfs_entity *create_track_browse_dir(sp_track *track) {
 	gchar track_linkstring[1024] = {0, };
 	spotify_link_as_string(link, track_linkstring, 1024);
 	if (spfs_entity_dir_has_child(track_browse_dir->e.dir, track_linkstring)) {
-		return NULL;
+		return spfs_entity_dir_get_child(track_browse_dir->e.dir, track_linkstring);
 	}
 	spfs_entity *track_dir = spfs_entity_dir_create(track_linkstring, NULL);
 	track_dir->auxdata = track;
