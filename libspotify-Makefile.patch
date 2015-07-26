@@ -1,0 +1,13 @@
+diff --git a/Makefile b/Makefile.new
+index 089fd33..4a506d9 100644
+--- a/Makefile
++++ b/Makefile.new
+@@ -15,8 +15,6 @@ install:
+ 	mkdir -p $(prefix)/lib/pkgconfig
+ 	sed -e s:PKG_PREFIX:$(prefix):g <lib/pkgconfig/libspotify.pc >$(prefix)/lib/pkgconfig/libspotify.pc
+ 
+-	ldconfig
+-
+ uninstall:
+ 	rm -rf $(prefix)/include/libspotify
+ 	rm -f  $(prefix)/lib/libspotify.so.12.1.51
