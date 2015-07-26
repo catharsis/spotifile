@@ -44,12 +44,3 @@ For fun, mostly. But also because I've been looking for a media playing solution
 > * fuse >= 2.6
 > * autotools
 > * GLib2
-
-## libspotify app key
-In order to compile spotifile, you need to provide your own appkey.c.
-The reason for this is that the Terms of Use for the app key puts all
-liability regarding misuse of the key on the original holder.
-
-I'm hoping that Spotify will reconsider that decision in the future, or at
-least provides some means for developers to prevent misuse, other than
-compiling/obfuscating the key.

@@ -1,6 +1,7 @@
 #include "spotify-fs.h"
 #include "spfs_spotify.h"
 #include "spfs_audio.h"
+#include "spfs_appkey.h"
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
@@ -198,8 +199,6 @@ static sp_session_callbacks spotify_callbacks = {
 
 sp_session * spotify_session_init(const char *username, const char *password, const char *blob)
 {
-	extern const uint8_t g_appkey[];
-	extern const size_t g_appkey_size;
 	sp_session_config config;
 	sp_error error;
 	sp_session *session;
@@ -207,8 +206,7 @@ sp_session * spotify_session_init(const char *username, const char *password, co
 	config.api_version = SPOTIFY_API_VERSION;
 	config.cache_location = "/var/tmp/";
 	config.settings_location = "/tmp";
-	config.application_key = g_appkey;
-	config.application_key_size = g_appkey_size;
+	config.application_key = spfs_appkey_get(&config.application_key_size);
 	config.callbacks = &spotify_callbacks;
 
 	config.user_agent = application_name;

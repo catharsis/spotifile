@@ -4,7 +4,7 @@ ACLOCAL_AMFLAGS = -I m4
 bin_PROGRAMS = spotifile
 check_PROGRAMS = tests_spfs_fuse_test
 TESTS = $(check_PROGRAMS)
-spotifile_LDADD = $(SPOTIFY_LIBS) $(GLIB_LIBS) $(FUSE_LIBS)
+spotifile_LDADD = $(SPOTIFY_LIBS) $(GLIB_LIBS) $(FUSE_LIBS) src/spfs_appkey.o
 spotifile_SOURCES = src/spfs_fuse.c src/spfs_fuse.h \
 					src/spfs_fuse_track.c src/spfs_fuse_track.h \
 					src/spfs_fuse_artist.c src/spfs_fuse_artist.h \
@@ -13,7 +13,7 @@ spotifile_SOURCES = src/spfs_fuse.c src/spfs_fuse.h \
 					src/spfs_spotify.c src/spfs_spotify.h \
 					src/spfs_audio.c src/spfs_audio.h \
 					src/spotify-fs.c src/spotify-fs.h \
-					src/appkey.c
+					src/spfs_appkey.h
 
 tests_spfs_fuse_test_SOURCES = tests/spfs_fuse_test.c \
 							   src/spfs_fuse_entity.c src/spfs_fuse_entity.h \
