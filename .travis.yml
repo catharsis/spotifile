@@ -1,0 +1,30 @@
+language: c
+sudo: false
+
+compiler:
+    - clang
+    - gcc
+
+after_success:
+    - make check || exit 1
+    - make distcheck || exit 1
+
+before_script:
+    - ./install_libspotify.sh
+    - autoreconf -ivs
+
+script:
+    - export PKG_CONFIG_PATH=$HOME/libspotify/lib/pkgconfig
+    - ./configure
+    - make
+
+addons:
+    apt:
+        packages:
+            - check
+            - libfuse-dev
+            - libglib2.0-dev
+
+notification:
+    email:
+        - anton.lofgren@gmail.com

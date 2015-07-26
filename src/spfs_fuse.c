@@ -223,11 +223,11 @@ void *spfs_init(struct fuse_conn_info *conn)
 			);
 
 	data->root = root;
-	g_info("%s initialising ...", application_name);
+	g_message("%s initialising ...", application_name);
 	session = spotify_session_init(conf->spotify_username, conf->spotify_password, NULL);
 	data->session = session;
 	spotify_threads_init(session);
-	g_info("%s initialised", application_name);
+	g_message("%s initialised", application_name);
 	return data;
 
 }
