@@ -1,4 +1,5 @@
-spotifile
+[![Build Status](https://travis-ci.org/catharsis/spotifile.svg?branch=master)](https://travis-ci.org/catharsis/spotifile)
+spotifile 
 =========
 
 FUSE file system for Spotify
