@@ -239,7 +239,7 @@ void spfs_destroy(void *userdata)
 	spotify_session_destroy(session);
 	spotify_threads_destroy();
 	spfs_entity_destroy(spfsdata->root);
-	g_info("%s destroyed", application_name);
+	g_message("%s destroyed", application_name);
 }
 
 

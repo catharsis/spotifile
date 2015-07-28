@@ -90,15 +90,15 @@ int spotify_login(sp_session * session, const char *username, const char *passwo
 		char reloginname[256];
 
 		if (sp_session_relogin(session) == SP_ERROR_NO_CREDENTIALS) {
-			g_info("no stored credentials");
+			g_message("no stored credentials");
 			return 1;
 		}
 
 		sp_session_remembered_user(session, reloginname, sizeof(reloginname));
-		g_info("trying to relogin as user %s", reloginname);
+		g_message("trying to relogin as user %s", reloginname);
 
 	} else {
-		g_info("trying to login as %s", username);
+		g_message("trying to login as %s", username);
 		sp_session_login(session, username, password, 1, blob);
 	}
 	return 0;
@@ -148,21 +148,21 @@ static int spotify_music_delivery(sp_session *session, const sp_audioformat *for
 }
 
 static void spotify_log_message(sp_session *session, const char *message) {
-	g_info("spotify: %s", message);
+	g_message("spotify: %s", message);
 }
 
 static void spotify_logged_out(sp_session *session) {
 	g_logged_in_at = (time_t) -1;
-	g_info("spotify: logged out");
+	g_message("spotify: logged out");
 }
 
 static void spotify_logged_in(sp_session *session, sp_error error)
 {
 	if(SP_ERROR_OK == error) {
 		time(&g_logged_in_at);
-		g_info("spotify: logged in at %d", (int)g_logged_in_at);
+		g_message("spotify: logged in at %d", (int)g_logged_in_at);
 	} else {
-		g_info("spotify: logged in failed (%s)", sp_error_message(error));
+		g_message("spotify: logged in failed (%s)", sp_error_message(error));
 	}
 }
 
@@ -216,7 +216,7 @@ sp_session * spotify_session_init(const char *username, const char *password, co
 				sp_error_message(error));
 		return NULL;
 	}
-	g_info("spotify session created!");
+	g_message("spotify session created!");
 	if(spotify_login(session, username, password, blob) != 0)
 		g_warning("login failed!");
 
@@ -227,7 +227,7 @@ void spotify_session_destroy(sp_session * session)
 {
 	sp_session_logout(session);
 	free(session);
-	g_info("session destroyed");
+	g_message("session destroyed");
 }
 
 void spotify_threads_init(sp_session *session)
