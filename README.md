@@ -40,8 +40,7 @@ Convenience scripts/wrappers (for stuff like listing search results & dmenu/rofi
 For fun, mostly. But also because I've been looking for a media playing solution that is both scriptable and ties into my otherwise somewhat minimalistic desktop environment nicely. I think this approach is not as crazy as it might initially sound for those purposes. It's worth a shot at least, yes?
 
 ## dependencies
-> * libspotify 
-> * appkey.c, retrieved from spotify.com (you need a premium account)
+> * libspotify
 > * fuse >= 2.6
 > * autotools
 > * GLib2
