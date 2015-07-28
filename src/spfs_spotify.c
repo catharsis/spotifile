@@ -28,9 +28,9 @@ void * spotify_thread_start(void *arg);
 #define SPFS_WAIT_ON_FUNC(_Type) \
 	static bool wait_on_ ## _Type (sp_ ## _Type *_Type) { \
 		g_debug("waiting for " STRINGIFY(_Type ) " to load"); \
+		if (!_Type) return false; \
 		gint64 end_time = g_get_monotonic_time() + SPFS_CB_TIMEOUT_S * G_TIME_SPAN_SECOND; \
-		bool v = sp_ ## _Type ## _is_loaded ( _Type ); \
-		while (! v) { \
+		while (! sp_ ## _Type ## _is_loaded ( _Type )) { \
 			if (!g_cond_wait_until(&g_spotify_data_available, &g_spotify_api_mutex, end_time)) \
 			{ \
 				g_debug(STRINGIFY(_Type ) " still not loaded...giving up"); \
