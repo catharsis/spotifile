@@ -84,7 +84,7 @@ SPFS_WAIT_ON_FUNC(track)
 SPFS_WAIT_ON_FUNC(playlist)
 SPFS_WAIT_ON_FUNC(user)
 SPFS_WAIT_ON_FUNC(playlistcontainer)
-
+#define wait_on_session(S) (true)
 int spotify_login(sp_session * session, const char *username, const char *password, const char *blob) {
 	if (username == NULL) {
 		char reloginname[256];
@@ -371,6 +371,9 @@ GSList *spotify_artist_search(sp_session * session, const char *query) {
 
 /* Playlist "getters"*/
 SPFS_SPOTIFY_API_FUNC(const gchar *, playlist, name)
+SPFS_SPOTIFY_API_FUNC(int, playlist, num_tracks)
+SPFS_SPOTIFY_API_FUNC2(sp_track *, playlist, track, int, index)
+SPFS_SPOTIFY_API_FUNC2(int, playlist, track_create_time, int, index)
 
 /* Artist "getters"*/
 SPFS_SPOTIFY_API_FUNC(const gchar *, artist, name)
@@ -388,43 +391,12 @@ SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_starred)
 SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_local)
 SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_autolinked)
 
-GSList *spotify_playlist_get_tracks(sp_playlist *playlist) {
-	GSList *tracks = NULL;
+/* Playlist container "getters"*/
+SPFS_SPOTIFY_API_FUNC(int, playlistcontainer, num_playlists)
+SPFS_SPOTIFY_API_FUNC2(sp_playlist *, playlistcontainer, playlist, int, index)
 
-	g_mutex_lock(&g_spotify_api_mutex);
-	if (!wait_on_playlist(playlist)) {
-		g_warn_if_reached();
-		g_mutex_unlock(&g_spotify_api_mutex);
-		return NULL;
-	}
-	int i, num_playlists = sp_playlist_num_tracks(playlist);
-	for (i = 0; i < num_playlists; ++i) {
-		tracks = g_slist_append(tracks,
-				sp_playlist_track(playlist, i)
-				);
-	}
-	g_mutex_unlock(&g_spotify_api_mutex);
-	return tracks;
-}
-
-GSList *spotify_get_playlists(sp_session *session) {
-	GSList *playlists = NULL;
-	g_mutex_lock(&g_spotify_api_mutex);
-	sp_playlistcontainer *c = sp_session_playlistcontainer(session);
-	if (!wait_on_playlistcontainer(c)) {
-		g_warn_if_reached();
-		g_mutex_unlock(&g_spotify_api_mutex);
-		return NULL;
-	}
-	int i, num_playlists = sp_playlistcontainer_num_playlists(c);
-	for (i = 0; i < num_playlists; ++i) {
-		playlists = g_slist_append(playlists,
-				sp_playlistcontainer_playlist(c, i)
-				);
-	}
-	g_mutex_unlock(&g_spotify_api_mutex);
-	return playlists;
-}
+/* Session "getters" */
+SPFS_SPOTIFY_API_FUNC(sp_playlistcontainer *, session, playlistcontainer)
 
 sp_link * spotify_link_create_from_artist(sp_artist *artist) {
 	sp_link *link = NULL;

@@ -35,9 +35,17 @@ sp_track_offline_status spotify_track_offline_get_status(sp_track *track);
 sp_artist *spotify_track_artist(sp_track *track, int index);
 
 /*playlists*/
-GSList *spotify_playlist_get_tracks(sp_playlist *playlist);
-GSList *spotify_get_playlists(sp_session *session);
 const gchar * spotify_playlist_name(sp_playlist *playlist);
+int spotify_playlist_num_tracks(sp_playlist *playlist);
+int spotify_playlist_track_create_time(sp_playlist *playlist, int index);
+sp_track *spotify_playlist_track(sp_playlist *playlist, int index);
+
+/*playlist containers*/
+int spotify_playlistcontainer_num_playlists(sp_playlistcontainer *playlistcontainer);
+sp_playlist * spotify_playlistcontainer_playlist(sp_playlistcontainer *playlistcontainer, int index);
+
+/*session*/
+sp_playlistcontainer * spotify_session_playlistcontainer(sp_session *session);
 
 /*links*/
 sp_link * spotify_link_create_from_artist(sp_artist *artist);

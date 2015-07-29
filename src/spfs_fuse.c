@@ -1,7 +1,7 @@
 #include "spotify-fs.h"
 #include "spfs_spotify.h"
 #include "spfs_fuse.h"
-#include "spfs_fuse_track.h"
+#include "spfs_fuse_playlist.h"
 #include "spfs_path.h"
 #include <string.h>
 #include <errno.h>
@@ -101,62 +101,6 @@ int spfs_readlink(const char *path, char *buf, size_t len) {
 	return 0;
 }
 
-/*readdir for a single playlist directory*/
-int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
-		struct fuse_file_info *fi) {
-
-	spfs_entity *e = (spfs_entity *)fi->fh;
-	sp_playlist *pl = (sp_playlist *)e->auxdata;
-
-	GSList *tracks = spotify_playlist_get_tracks(pl);
-	if (tracks != NULL) {
-		GSList *tmp = tracks;
-		while (tmp != NULL) {
-			sp_track *track = (sp_track *)tmp->data;
-			const gchar *trackname = spotify_track_name(track);
-			spfs_entity *track_browse_dir = create_track_browse_dir(track);
-			if (!spfs_entity_dir_has_child(e->e.dir, trackname)) {
-				spfs_entity *tracklink = spfs_entity_link_create(trackname, NULL);
-				spfs_entity_dir_add_child(e, tracklink);
-				gchar *rpath = relpath(e, track_browse_dir);
-				spfs_entity_link_set_target(tracklink, rpath);
-				g_free(rpath);
-
-			}
-			tmp = g_slist_next(tmp);
-		}
-		g_slist_free(tracks);
-	}
-	return 0;
-}
-
-/*readdir for the "root" playlists directory*/
-int playlists_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
-		struct fuse_file_info *fi) {
-	sp_session *session = SPFS_SP_SESSION;
-	g_return_val_if_fail(session != NULL, 0);
-	spfs_entity *playlists_dir = (spfs_entity *)fi->fh;
-
-	GSList *playlists = spotify_get_playlists(session);
-	if (playlists != NULL) {
-		GSList *tmp = playlists;
-		while (tmp != NULL) {
-			sp_playlist * pl = tmp->data;
-			const gchar *name = spotify_playlist_name(pl);
-			if (!spfs_entity_dir_has_child(playlists_dir->e.dir, name)) {
-				spfs_entity * pld =
-					spfs_entity_dir_create(name, playlist_dir_readdir);
-
-				pld->auxdata = pl;
-
-				spfs_entity_dir_add_child(playlists_dir, pld);
-			}
-			tmp = g_slist_next(tmp);
-		}
-		g_slist_free(playlists);
-	}
-	return 0;
-}
 
 int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi)
