@@ -264,7 +264,7 @@ bool spotify_is_playing(void) {
 	return spfs_audio_playback_is_playing(g_playback);
 }
 
-ssize_t spotify_get_audio(char *buf, size_t size) {
+size_t spotify_get_audio(char *buf, size_t size) {
 
 	size_t sz = 0;
 	spfs_audio *audio = NULL;
