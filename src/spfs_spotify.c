@@ -133,7 +133,7 @@ static int spotify_music_delivery(sp_session *session, const sp_audioformat *for
 	}
 	size_t s = num_frames * sizeof(int16_t) * format->channels;
 	spfs_audio *audio = malloc(sizeof(*audio) + s);
-	mempcpy(audio->samples, frames, s);
+	memcpy(audio->samples, frames, s);
 
 	audio->nsamples = num_frames;
 
@@ -267,16 +267,35 @@ bool spotify_is_playing(void) {
 	return spfs_audio_playback_is_playing(g_playback);
 }
 
-size_t spotify_get_audio(char *buf, size_t size) {
+void spotify_get_track_info(int *channels, int *rate) {
+	spfs_audio *audio = NULL;
+	g_mutex_lock(&(g_playback->mutex));
+	while ((audio = g_queue_peek_head(g_playback->queue)) == NULL ) {
+		g_cond_wait(&(g_playback->cond), &(g_playback->mutex));
+	}
+	if (channels)
+		*channels = audio->channels;
 
+	if (rate)
+		*rate = audio->rate;
+
+	g_mutex_unlock(&(g_playback->mutex));
+}
+
+// Tries to saturate buf with size bytes. Makes an effort to always return at least
+// some data when a track is playing, even if this means waiting for it to be
+// delivered.
+size_t spotify_get_audio(char *buf, size_t size) {
 	size_t sz = 0;
 	spfs_audio *audio = NULL;
 
 	if (!spotify_is_playing()) {
+		g_debug("spotify not playing, no audio to get");
 		return 0;
 	}
 
 	if (g_playback_done) {
+		g_debug("spotify not playing, no audio to get");
 		g_playback_done = false;
 		return 0;
 	}
@@ -288,11 +307,27 @@ size_t spotify_get_audio(char *buf, size_t size) {
 	}
 	while ((audio = g_queue_pop_head(g_playback->queue)) != NULL) {
 		size_t seg_sz = audio->nsamples * sizeof(int16_t) * audio->channels;
-		if (sz + seg_sz < size) {
+		if (sz + seg_sz <= size) { // the entire segment fits
 			memcpy(buf+sz, audio->samples, seg_sz);
 			g_playback->nsamples -= audio->nsamples;
 			spfs_audio_free(audio);
 			sz += seg_sz;
+		}
+		else if (sz == 0) { // we have to return something, at least
+			size_t read_samples = size / (sizeof(int16_t) * audio->channels);
+
+			// yield the first <size> bytes
+			memcpy(buf, audio->samples, size);
+
+			// and move the remaining samples to the beginning
+			memmove(audio->samples, (char *)audio->samples + size, seg_sz - size);
+			audio->nsamples -= read_samples;
+			g_playback->nsamples -= read_samples;
+
+			// re-add the partial segment
+			g_queue_push_head(g_playback->queue, audio);
+			sz = size;
+			break;
 		}
 		else {
 			g_queue_push_head(g_playback->queue, audio);

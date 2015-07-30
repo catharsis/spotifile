@@ -76,7 +76,42 @@ static int duration_read(const char *path, char *buf, size_t size, off_t offset,
 	return size;
 }
 
-static int pcm_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+struct wav_header {
+	char riff[4];
+	uint32_t size;
+	char type[4];
+	char fmt[4];
+	uint32_t fmt_size;
+	uint16_t fmt_type;
+	uint16_t channels;
+	uint32_t sample_rate;
+	uint32_t byte_rate;
+	uint16_t block_align;
+	uint16_t bits_per_sample;
+	char data[4];
+	uint32_t data_size;
+};
+
+static void fill_wav_header(struct wav_header *h, int channels, int rate, int duration) {
+	// A highly inflexible wave implementation, it gets the job done though
+	// See, for example,
+	// http://people.ece.cornell.edu/land/courses/ece4760/FinalProjects/f2014/wz233/ECE%204760%20Final%20Report%20%28HTML%29/ECE%204760%20Stereo%20Player_files/RIFF%20WAVE%20file%20format.jpg
+	memcpy(h->riff, "RIFF", 4);
+	h->bits_per_sample = 16; //only supported sample type as of now
+	h->size = (sizeof(*h) + ((duration / 1000) * channels * h->bits_per_sample * rate) / 8) - 8;
+	memcpy(h->type, "WAVE", 4);
+	memcpy(h->fmt, "fmt ", 4);
+	h->fmt_size = 16;
+	h->fmt_type = 1; //PCM
+	h->channels = channels;
+	h->sample_rate = rate;
+	h->byte_rate = (rate * h->bits_per_sample * channels) / 8;
+	h->block_align = (h->bits_per_sample * channels) / 8;
+	memcpy(h->data, "data", 4);
+	h->data_size = h->size - 44;
+}
+
+static int wav_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
 	sp_session *session = SPFS_SP_SESSION;
 
@@ -85,7 +120,24 @@ static int pcm_read(const char *path, char *buf, size_t size, off_t offset, stru
 		return 0;
 	}
 	memset(buf, 0, size);
-	size_t read = spotify_get_audio(buf, size);
+	struct wav_header header;
+	size_t read = 0;
+	if ((size_t) offset < sizeof(header)) {
+		memset(&header, 0, sizeof(header));
+		int channels, rate;
+		int duration = spotify_track_duration(e->parent->auxdata);
+		spotify_get_track_info(&channels, &rate);
+		fill_wav_header(&header, channels, rate, duration);
+
+		if ( offset + size > sizeof(header))
+			read = sizeof(header) - offset;
+		else
+			read = size;
+		memcpy(buf, (char*)&header + offset, read);
+	}
+
+	if (read < size && (offset + read >= sizeof(header)))
+		read += spotify_get_audio(buf+read, size - read);
 	return read;
 }
 
@@ -127,7 +179,7 @@ spfs_entity *create_track_browse_dir(sp_track *track) {
 			spfs_entity_file_create("name", name_read));
 
 	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_file_create("pcm", pcm_read));
+			spfs_entity_file_create("wav", wav_read));
 
 	spfs_entity_dir_add_child(track_dir,
 			spfs_entity_file_create("duration", duration_read));
