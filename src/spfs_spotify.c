@@ -148,7 +148,10 @@ static int spotify_music_delivery(sp_session *session, const sp_audioformat *for
 }
 
 static void spotify_log_message(sp_session *session, const char *message) {
-	g_message("spotify: %s", message);
+	/* strip trailing whitespace to keep the log neat */
+	gchar *tmp = g_strdup(message);
+	g_message("spotify: %s", g_strchomp(tmp));
+	g_free(tmp);
 }
 
 static void spotify_logged_out(sp_session *session) {
