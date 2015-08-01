@@ -38,7 +38,7 @@ Convenience scripts/wrappers (for stuff like listing search results & dmenu/rofi
 
 Currently, the focus is to get something "dog-foodable" going. For me, that includes at the very least convenient playback (through mplayer or aplay for example) with embedded riff/wave headers to avoid the drudgery of having to specify sample rates and simple browsing of existing play lists. Once that is done, I might consider a 0.1 release in some form. 
 
-Further milestones include searching, fleshed out metadata for all objects/subsystems (artists, tracks, albums, etc.). Eventually, when things have matured a bit, I hope to also include some writable parts. For example, being able to create new playlists with mkdir and ln would be cool. 
+Further milestones include seek (for audio), searching, fleshed out metadata for all objects/subsystems (artists, tracks, albums, etc.). Eventually, when things have matured a bit, I hope to also include some writable parts. For example, being able to create new playlists with mkdir and ln would be cool. 
 
 ## Oh dear, why?
 For fun, mostly. But also because I've been looking for a media playing solution that is both scriptable and ties into my otherwise somewhat minimalistic desktop environment nicely. I think this approach is not as crazy as it might initially sound for those purposes. It's worth a shot at least, yes?
