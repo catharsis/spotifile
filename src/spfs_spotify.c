@@ -360,10 +360,6 @@ bool spotify_play_track(sp_session *session, sp_track *track) {
 	spfs_audio_playback_flush(g_playback);
 	g_playback_done = false;
 	g_mutex_lock(&g_spotify_api_mutex);
-	if (!sp_track_is_loaded(track)) {
-		g_mutex_unlock(&g_spotify_api_mutex);
-		return false;
-	}
 	sp_error sperr = sp_session_player_load(session, track);
 	if(sperr == SP_ERROR_OK) {
 		sp_session_player_play(session, true);
