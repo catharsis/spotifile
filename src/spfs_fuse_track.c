@@ -132,7 +132,7 @@ static int wav_read(const char *path, char *buf, size_t size, off_t offset, stru
 		if ( offset + size > sizeof(header))
 			read = sizeof(header) - offset;
 		else
-			read = size;
+			read = sizeof(header);
 		memcpy(buf, (char*)&header + offset, read);
 	}
 
