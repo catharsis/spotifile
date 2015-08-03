@@ -267,9 +267,16 @@ bool spotify_is_playing(void) {
 	return spfs_audio_playback_is_playing(g_playback);
 }
 
-void spotify_get_track_info(int *channels, int *rate) {
+// Returns track information for the currently playing track
+int spotify_get_track_info(int *channels, int *rate) {
 	spfs_audio *audio = NULL;
+	int duration = 0;
 	g_mutex_lock(&(g_playback->mutex));
+	if (!g_playback->playing) {
+		g_mutex_unlock(&g_playback->mutex);
+		return 0;
+	}
+
 	while ((audio = g_queue_peek_head(g_playback->queue)) == NULL ) {
 		g_cond_wait(&(g_playback->cond), &(g_playback->mutex));
 	}
@@ -279,7 +286,11 @@ void spotify_get_track_info(int *channels, int *rate) {
 	if (rate)
 		*rate = audio->rate;
 
+	if (wait_on_track(g_playback->playing))
+		duration = sp_track_duration(g_playback->playing);
+
 	g_mutex_unlock(&(g_playback->mutex));
+	return duration;
 }
 
 // Tries to saturate buf with size bytes. Makes an effort to always return at least

@@ -14,7 +14,7 @@ const char * spotify_track_offline_status_str(sp_track_offline_status);
 
 /*misc. playback*/
 bool spotify_play_track(sp_session *session, sp_track *track);
-void spotify_get_track_info(int *channels, int *rate);
+int spotify_get_track_info(int *channels, int *rate);
 size_t spotify_get_audio(char *buf, size_t size);
 bool spotify_is_playing(void);
 

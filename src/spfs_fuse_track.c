@@ -125,8 +125,7 @@ static int wav_read(const char *path, char *buf, size_t size, off_t offset, stru
 	if ((size_t) offset < sizeof(header)) {
 		memset(&header, 0, sizeof(header));
 		int channels, rate;
-		int duration = spotify_track_duration(e->parent->auxdata);
-		spotify_get_track_info(&channels, &rate);
+		int duration = spotify_get_track_info(&channels, &rate);
 		fill_wav_header(&header, channels, rate, duration);
 
 		if ( offset + size > sizeof(header))
