@@ -111,6 +111,9 @@ static void spotify_start_playback(sp_session *session) {
 
 static void spotify_end_of_track(sp_session *session) {
 	spfs_audio_playback_flush(g_playback);
+	g_mutex_lock(&g_playback->mutex);
+	g_playback->playing = NULL;
+	g_mutex_unlock(&g_playback->mutex);
 	g_playback_done = true;
 }
 
@@ -349,6 +352,19 @@ size_t spotify_get_audio(char *buf, size_t size) {
 	return sz;
 }
 
+
+void spotify_seek_track(sp_session *session, int offset) {
+	g_return_if_fail(session != NULL);
+	g_return_if_fail((int)offset >= 0);
+	if (!g_playback->playing)
+		g_warn_if_reached();
+
+	g_playback_done = false;
+	g_mutex_lock(&g_spotify_api_mutex);
+	sp_session_player_seek(session, offset);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	spfs_audio_playback_flush(g_playback);
+}
 
 bool spotify_play_track(sp_session *session, sp_track *track) {
 	g_return_val_if_fail(session != NULL, false);

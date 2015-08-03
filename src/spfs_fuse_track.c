@@ -112,20 +112,24 @@ static void fill_wav_header(struct wav_header *h, int channels, int rate, int du
 }
 
 static int wav_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	static off_t expoff = 0;
 	spfs_entity *e = (spfs_entity *)fi->fh;
 	sp_session *session = SPFS_SP_SESSION;
+	int channels, rate, duration;
 
 	if (!spotify_play_track(session, e->parent->auxdata)) {
 		g_warning("Failed to play track!");
 		return 0;
 	}
+
 	memset(buf, 0, size);
 	struct wav_header header;
 	size_t read = 0;
+
+
 	if ((size_t) offset < sizeof(header)) {
 		memset(&header, 0, sizeof(header));
-		int channels, rate;
-		int duration = spotify_get_track_info(&channels, &rate);
+		duration = spotify_get_track_info(&channels, &rate);
 		fill_wav_header(&header, channels, rate, duration);
 
 		if ( offset + size > sizeof(header))
@@ -135,8 +139,25 @@ static int wav_read(const char *path, char *buf, size_t size, off_t offset, stru
 		memcpy(buf, (char*)&header + offset, read);
 	}
 
-	if (read < size && (offset + read >= sizeof(header)))
+	if (expoff != offset) {
+		//seek
+		duration = spotify_get_track_info(&channels, &rate);
+		size_t bytes_p_s = (channels * 16 * rate) / 8;
+
+		int ms_offset = (offset / bytes_p_s) * 1000;
+
+		if (duration < ms_offset)
+			g_warn_if_reached();
+
+		spotify_seek_track(session, ms_offset);
+		expoff = offset;
+	}
+
+	if (read < size && (offset + read >= sizeof(header))) {
+		// get some audio, but only if we've read the entire header
 		read += spotify_get_audio(buf+read, size - read);
+	}
+	expoff += read;
 	return read;
 }
 

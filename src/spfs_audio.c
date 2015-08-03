@@ -15,14 +15,16 @@ void spfs_audio_playback_flush(spfs_audio_playback *playback) {
 	g_mutex_lock(&playback->mutex);
 	spfs_audio *audio = NULL;
 	while ((audio = g_queue_pop_head(playback->queue)) != NULL) {
+		playback->nsamples -= audio->nsamples;
 		spfs_audio_free(audio);
 	}
-	playback->nsamples = 0;
+	g_warn_if_fail(playback->nsamples == 0);
+	g_warn_if_fail(g_queue_is_empty(playback->queue));
 	playback->stutter = 0;
-	playback->playing = NULL;
 	g_cond_signal(&playback->cond);
 	g_mutex_unlock(&playback->mutex);
 }
+
 spfs_audio_playback *spfs_audio_playback_new(void) {
 	spfs_audio_playback *pbk = g_new0(spfs_audio_playback, 1);
 	pbk->queue = g_queue_new();
