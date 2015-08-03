@@ -199,7 +199,7 @@ spfs_entity *create_track_browse_dir(sp_track *track) {
 			spfs_entity_file_create("name", name_read));
 
 	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_file_create("wav", wav_read));
+			spfs_entity_file_create("track.wav", wav_read));
 
 	spfs_entity_dir_add_child(track_dir,
 			spfs_entity_file_create("duration", duration_read));
