@@ -27,7 +27,7 @@ Browsing!
 Playback!
 
     $ cd /home/alofgren/spotifile/playlists/Hank\ Williams
-    $ cat Long\ Gone\ Lonesome\ Blues/pcm| aplay -r 44100 -c 2 -f S16_LE                     
+    $ mplayer Long\ Gone\ Lonesome\ Blues/track.wav                   
 
 
 and so forth.
