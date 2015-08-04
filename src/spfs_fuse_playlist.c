@@ -3,7 +3,7 @@
 #include "spfs_fuse_playlist.h"
 #include "spfs_fuse_track.h"
 /*readdir for a single playlist directory*/
-int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
+static int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
 
 	spfs_entity *e = (spfs_entity *)fi->fh;

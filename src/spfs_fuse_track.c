@@ -170,6 +170,9 @@ int artists_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
 		sp_artist *artist = spotify_track_artist(track, i);
 		const gchar *artistname = spotify_artist_name(artist);
 		spfs_entity *artist_browse_dir = create_artist_browse_dir(artist);
+		/*
+		 * FIXME: Deal with duplicates (artists with the same name).
+		 */
 		if (!spfs_entity_dir_has_child(e->e.dir, artistname)) {
 			spfs_entity *artist_link = spfs_entity_link_create(artistname, NULL);
 			spfs_entity_dir_add_child(e, artist_link);

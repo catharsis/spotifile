@@ -132,6 +132,7 @@ void spfs_entity_dir_add_child(spfs_entity *parent, spfs_entity *child) {
 
 	child->parent = parent;
 	g_hash_table_insert(parent->e.dir->children, child->name, child);
+	g_debug("added %s to dir %s", child->name, parent->name ? parent->name : "root");
 }
 
 void spfs_entity_link_set_target(spfs_entity *link, const gchar *target) {
