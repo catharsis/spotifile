@@ -336,12 +336,7 @@ size_t spotify_get_audio(char *buf, size_t size) {
 	size_t sz = 0;
 	spfs_audio *audio = NULL;
 
-	if (!spotify_is_playing()) {
-		g_debug("spotify not playing, no audio to get");
-		return 0;
-	}
-
-	if (g_playback_done) {
+	if (!spotify_is_playing() || g_playback_done) {
 		g_debug("spotify not playing, no audio to get");
 		g_playback_done = false;
 		return 0;
