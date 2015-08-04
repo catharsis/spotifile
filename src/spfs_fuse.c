@@ -156,6 +156,11 @@ void *spfs_init(struct fuse_conn_info *conn)
 				NULL
 				));
 
+	spfs_entity_dir_add_child(browsedir,
+			spfs_entity_dir_create(
+				"albums",
+				NULL
+				));
 
 	spfs_entity_dir_add_child(root, browsedir);
 

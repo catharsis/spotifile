@@ -297,6 +297,22 @@ int spotify_get_track_info(int *channels, int *rate) {
 	return duration;
 }
 
+GArray *spotify_get_artistbrowse_albums(sp_artistbrowse *ab) {
+	g_mutex_lock(&g_spotify_api_mutex);
+	if (!wait_on_artistbrowse(ab)) {
+		g_warn_if_reached();
+		return NULL;
+	}
+	int n = sp_artistbrowse_num_albums(ab);
+	GArray *albums = g_array_sized_new(false, false, sizeof(sp_album *), n);
+	for (int i =0; i < n; ++i) {
+		sp_album *a = sp_artistbrowse_album(ab, i);
+		g_array_insert_val(albums, i, a);
+	}
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return albums;
+}
+
 GArray *spotify_get_playlists(sp_session *session) {
 	g_mutex_lock(&g_spotify_api_mutex);
 	sp_playlistcontainer *plc = sp_session_playlistcontainer(session);
@@ -459,6 +475,9 @@ SPFS_SPOTIFY_API_FUNC2(int, playlist, track_create_time, int, index)
 /* Artist "getters"*/
 SPFS_SPOTIFY_API_FUNC(const gchar *, artist, name)
 
+/* Album "getters"*/
+SPFS_SPOTIFY_API_FUNC(const gchar *, album, name)
+
 /* Artist browse "getters" */
 SPFS_SPOTIFY_API_FUNC(sp_artist *, artistbrowse, artist);
 
@@ -496,6 +515,14 @@ sp_link * spotify_link_create_from_track(sp_track *track) {
 	link = sp_link_create_from_track(track,
 			0 // offset in ms
 			);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return link;
+}
+
+sp_link * spotify_link_create_from_album(sp_album *album) {
+	sp_link *link = NULL;
+	g_mutex_lock(&g_spotify_api_mutex);
+	link = sp_link_create_from_album(album);
 	g_mutex_unlock(&g_spotify_api_mutex);
 	return link;
 }

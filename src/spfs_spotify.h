@@ -15,7 +15,7 @@ const char * spotify_track_offline_status_str(sp_track_offline_status);
 /* higher level functions */
 GArray *spotify_get_playlists(sp_session *session);
 GArray *spotify_get_playlist_tracks(sp_playlist *playlist);
-sp_artistbrowse *spotify_artistbrowse_create(sp_session *session, sp_artist *artist);
+GArray *spotify_get_artistbrowse_albums(sp_artistbrowse *artistbrowse);
 
 /*misc. playback*/
 bool spotify_play_track(sp_session *session, sp_track *track);
@@ -27,7 +27,11 @@ bool spotify_is_playing(void);
 /*artists*/
 const gchar * spotify_artist_name(sp_artist * artist);
 
+/*albums*/
+const gchar * spotify_album_name(sp_album * album);
+
 /*artist browse*/
+sp_artistbrowse *spotify_artistbrowse_create(sp_session *session, sp_artist *artist);
 sp_artist * spotify_artistbrowse_artist(sp_artistbrowse *artistbrowse);
 char * spotify_artistbrowse_biography(sp_artistbrowse *artistbrowse);
 
@@ -60,6 +64,7 @@ sp_playlistcontainer * spotify_session_playlistcontainer(sp_session *session);
 /*links*/
 sp_link * spotify_link_create_from_artist(sp_artist *artist);
 sp_link * spotify_link_create_from_track(sp_track *track);
+sp_link * spotify_link_create_from_album(sp_album *album);
 sp_link * spotify_link_create_from_string(const char *str);
 int spotify_link_as_string(sp_link *link, char *buf, int buffer_size);
 sp_artist * spotify_link_as_artist(sp_link *link);
