@@ -12,6 +12,10 @@ sp_connectionstate spotify_connectionstate();
 const char * spotify_connectionstate_str(sp_connectionstate connectionstate);
 const char * spotify_track_offline_status_str(sp_track_offline_status);
 
+/* higher level functions */
+GArray *spotify_get_playlists(sp_session *session);
+GArray *spotify_get_playlist_tracks(sp_playlist *playlist);
+
 /*misc. playback*/
 bool spotify_play_track(sp_session *session, sp_track *track);
 void spotify_seek_track(sp_session *session, int offset);

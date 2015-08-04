@@ -9,9 +9,9 @@ int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 	spfs_entity *e = (spfs_entity *)fi->fh;
 	sp_playlist *pl = (sp_playlist *)e->auxdata;
 
-	int num_tracks = spotify_playlist_num_tracks(pl);
-	for (int i = 0; i < num_tracks; ++i) {
-		sp_track *track = spotify_playlist_track(pl, i);
+	GArray *tracks = spotify_get_playlist_tracks(pl);
+	for (guint i = 0; i < tracks->len; ++i) {
+		sp_track *track = g_array_index(tracks, sp_track *, i);
 		const gchar *trackname = spotify_track_name(track);
 		spfs_entity *track_browse_dir = create_track_browse_dir(track);
 		if (!spfs_entity_dir_has_child(e->e.dir, trackname)) {
@@ -24,6 +24,7 @@ int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 
 		}
 	}
+	g_array_free(tracks, false);
 	return 0;
 }
 
@@ -33,11 +34,9 @@ int playlists_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, o
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
 	spfs_entity *playlists_dir = (spfs_entity *)fi->fh;
-
-	sp_playlistcontainer *playlistcontainer = spotify_session_playlistcontainer(session);
-	int num_playlists = spotify_playlistcontainer_num_playlists(playlistcontainer);
-	for (int i = 0; i < num_playlists; ++i) {
-		sp_playlist * pl = spotify_playlistcontainer_playlist(playlistcontainer, i);
+	GArray *playlists = spotify_get_playlists(session);
+	for (guint i = 0; i < playlists->len; ++i) {
+		sp_playlist * pl = g_array_index(playlists, sp_playlist *, i);
 		const gchar *name = spotify_playlist_name(pl);
 		if (!spfs_entity_dir_has_child(playlists_dir->e.dir, name)) {
 			spfs_entity * pld = spfs_entity_dir_create(name,
@@ -46,5 +45,6 @@ int playlists_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, o
 			spfs_entity_dir_add_child(playlists_dir, pld);
 		}
 	}
+	g_array_free(playlists, false);
 	return 0;
 }

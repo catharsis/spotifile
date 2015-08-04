@@ -27,10 +27,10 @@ void * spotify_thread_start(void *arg);
 #define STRINGIFY(x) #x
 #define SPFS_WAIT_ON_FUNC(_Type) \
 	static bool wait_on_ ## _Type (sp_ ## _Type *_Type) { \
-		g_debug("waiting for " STRINGIFY(_Type ) " to load"); \
 		if (!_Type) return false; \
 		gint64 end_time = g_get_monotonic_time() + SPFS_CB_TIMEOUT_S * G_TIME_SPAN_SECOND; \
 		while (! sp_ ## _Type ## _is_loaded ( _Type )) { \
+			g_debug("waiting for " STRINGIFY(_Type ) " to load"); \
 			if (!g_cond_wait_until(&g_spotify_data_available, &g_spotify_api_mutex, end_time)) \
 			{ \
 				g_debug(STRINGIFY(_Type ) " still not loaded...giving up"); \
@@ -294,6 +294,39 @@ int spotify_get_track_info(int *channels, int *rate) {
 
 	g_mutex_unlock(&(g_playback->mutex));
 	return duration;
+}
+
+GArray *spotify_get_playlists(sp_session *session) {
+	g_mutex_lock(&g_spotify_api_mutex);
+	sp_playlistcontainer *plc = sp_session_playlistcontainer(session);
+	if (!wait_on_playlistcontainer(plc)) {
+		g_warn_if_reached();
+		return NULL;
+	}
+	int n = sp_playlistcontainer_num_playlists(plc);
+	GArray *playlists = g_array_sized_new(false, false, sizeof(sp_playlist *), n);
+	for (int i = 0; i < n; ++i) {
+		sp_playlist * pl = sp_playlistcontainer_playlist(plc, i);
+		g_array_insert_val(playlists, i, pl);
+	}
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return playlists;
+}
+
+GArray *spotify_get_playlist_tracks(sp_playlist *playlist) {
+	g_mutex_lock(&g_spotify_api_mutex);
+	if (!wait_on_playlist(playlist)) {
+		g_warn_if_reached();
+		return NULL;
+	}
+	int n = sp_playlist_num_tracks(playlist);
+	GArray *tracks = g_array_sized_new(false, false, sizeof(sp_track *), n);
+	for (int i = 0; i < n; ++i) {
+		sp_track *track = sp_playlist_track(playlist, i);
+		g_array_insert_val(tracks, i, track);
+	}
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return tracks;
 }
 
 // Tries to saturate buf with size bytes. Makes an effort to always return at least
