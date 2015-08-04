@@ -15,6 +15,7 @@ const char * spotify_track_offline_status_str(sp_track_offline_status);
 /* higher level functions */
 GArray *spotify_get_playlists(sp_session *session);
 GArray *spotify_get_playlist_tracks(sp_playlist *playlist);
+sp_artistbrowse *spotify_artistbrowse_create(sp_session *session, sp_artist *artist);
 
 /*misc. playback*/
 bool spotify_play_track(sp_session *session, sp_track *track);
@@ -24,8 +25,11 @@ size_t spotify_get_audio(char *buf, size_t size);
 bool spotify_is_playing(void);
 
 /*artists*/
-GSList * spotify_artist_search(sp_session * session, const char *query);
 const gchar * spotify_artist_name(sp_artist * artist);
+
+/*artist browse*/
+sp_artist * spotify_artistbrowse_artist(sp_artistbrowse *artistbrowse);
+char * spotify_artistbrowse_biography(sp_artistbrowse *artistbrowse);
 
 /*tracks*/
 const gchar * spotify_track_name(sp_track *track);

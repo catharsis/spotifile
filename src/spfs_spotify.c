@@ -84,6 +84,7 @@ SPFS_WAIT_ON_FUNC(track)
 SPFS_WAIT_ON_FUNC(playlist)
 SPFS_WAIT_ON_FUNC(user)
 SPFS_WAIT_ON_FUNC(playlistcontainer)
+SPFS_WAIT_ON_FUNC(artistbrowse)
 #define wait_on_session(S) (true)
 int spotify_login(sp_session * session, const char *username, const char *password, const char *blob) {
 	if (username == NULL) {
@@ -175,12 +176,6 @@ static void spotify_logged_in(sp_session *session, sp_error error)
 static void spotify_connection_error(sp_session *session, sp_error error)
 {
 	g_warning("Connection error %d: %s\n", error, sp_error_message(error));
-}
-
-static void artist_search_complete_cb(sp_search *result, void *userdata)
-{
-	g_debug("Artist search complete!");
-	g_cond_broadcast(&g_spotify_data_available);
 }
 
 static void spotify_notify_main_thread(sp_session *session)
@@ -423,45 +418,36 @@ bool spotify_play_track(sp_session *session, sp_track *track) {
 	return ret;
 }
 
-GSList *spotify_artist_search(sp_session * session, const char *query) {
-	int i = 0, num_artists = 0;
-	sp_search *search = NULL;
-	sp_artist *artist = NULL;
-	GSList *artists = NULL;
-	g_return_val_if_fail(session != NULL, NULL);
-	g_return_val_if_fail(query != NULL, NULL);
+void spotifile_artistbrowse_complete_cb(sp_artistbrowse *result, void *userdata) {
+	g_cond_broadcast(&g_spotify_data_available);
 
-	sp_connectionstate connstate = spotify_connectionstate(session);
-	if ( connstate != SP_CONNECTION_STATE_LOGGED_IN) {
-		g_debug("Not logged in (%s), won't search for artist %s", spotify_connectionstate_str(connstate), query);
+}
+
+char * spotify_artistbrowse_biography(sp_artistbrowse *artistbrowse) {
+	g_return_val_if_fail(artistbrowse != NULL, NULL);
+	g_mutex_lock(&g_spotify_api_mutex);
+	if (!wait_on_artistbrowse(artistbrowse)) {
+		g_warn_if_reached();
 		return NULL;
 	}
-	g_mutex_lock(&g_spotify_api_mutex);
-	search = sp_search_create(session, query, 0, 0, 0, 0, 0, 100, 0, 0, SP_SEARCH_STANDARD, artist_search_complete_cb, NULL);
-	g_debug("search created, waiting on load");
-
-	gint64 end_time = g_get_monotonic_time() + SPFS_CB_TIMEOUT_S * G_TIME_SPAN_SECOND;
-	while (!sp_search_is_loaded(search)) {
-		if (!g_cond_wait_until(&g_spotify_data_available, &g_spotify_api_mutex, end_time))
-		{
-			g_mutex_unlock(&g_spotify_api_mutex);
-			g_debug("still not loaded...giving up");
-			return NULL;
-		}
-	}
-
-	num_artists = sp_search_num_artists(search);
-	g_debug("Found %d artists", num_artists);
-	if (num_artists > 0) {
-		for (i = 0; i < num_artists; i++) {
-			artist = sp_search_artist(search, i);
-			artists = g_slist_append(artists, artist); /*FIXME: sp_artist_ref?*/
-			g_debug("Found artist: %s", sp_artist_name(artist));
-		}
-	}
-	sp_search_release(search);
+	char *biography = g_strdup(sp_artistbrowse_biography(artistbrowse));
 	g_mutex_unlock(&g_spotify_api_mutex);
-	return artists;
+	return biography;
+
+}
+sp_artistbrowse * spotify_artistbrowse_create(sp_session * session, sp_artist * artist) {
+	g_return_val_if_fail(session != NULL, NULL);
+	g_return_val_if_fail(artist != NULL, NULL);
+
+	g_mutex_lock(&g_spotify_api_mutex);
+	if (!wait_on_artist(artist)) {
+		g_warn_if_reached();
+		return NULL;
+	}
+
+	sp_artistbrowse *ab = sp_artistbrowse_create(session, artist, SP_ARTISTBROWSE_NO_TRACKS, spotifile_artistbrowse_complete_cb, NULL);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return ab;
 }
 
 /* Playlist "getters"*/
@@ -472,6 +458,9 @@ SPFS_SPOTIFY_API_FUNC2(int, playlist, track_create_time, int, index)
 
 /* Artist "getters"*/
 SPFS_SPOTIFY_API_FUNC(const gchar *, artist, name)
+
+/* Artist browse "getters" */
+SPFS_SPOTIFY_API_FUNC(sp_artist *, artistbrowse, artist);
 
 /* Track "getters"*/
 SPFS_SPOTIFY_API_FUNC(const gchar *, track, name)
