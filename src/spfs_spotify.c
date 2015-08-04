@@ -191,8 +191,14 @@ static void spotify_notify_main_thread(sp_session *session)
 	g_mutex_unlock(&g_spotify_notify_mutex);
 }
 
+static void spotify_metadata_updated(sp_session *session)
+{
+	g_cond_broadcast(&g_spotify_data_available);
+}
+
 static sp_session_callbacks spotify_callbacks = {
 	.notify_main_thread = spotify_notify_main_thread,
+	.metadata_updated = spotify_metadata_updated,
 	.logged_in = spotify_logged_in,
 	.connection_error = spotify_connection_error,
 	.logged_out = spotify_logged_out,
