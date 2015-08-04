@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 	}
 
 	fuse_opt_parse(&args, &conf, spfs_opts, spfs_opt_process);
-
+	fuse_opt_add_arg(&args, "-oentry_timeout=0");
 	g_log_set_default_handler(spfs_log_handler, stdout);
 
 	if (conf.spotify_username != NULL && !conf.spotify_password)
