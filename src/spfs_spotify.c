@@ -33,7 +33,7 @@ void * spotify_thread_start(void *arg);
 			g_debug("waiting for " STRINGIFY(_Type ) " to load"); \
 			if (!g_cond_wait_until(&g_spotify_data_available, &g_spotify_api_mutex, end_time)) \
 			{ \
-				g_debug(STRINGIFY(_Type ) " still not loaded...giving up"); \
+				g_warning(STRINGIFY(_Type ) " still not loaded...giving up"); \
 				return false; \
 			} \
 		} \
