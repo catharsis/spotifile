@@ -4,37 +4,38 @@
 
 static int is_starred_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
-	char *str = spotify_track_is_starred(SPFS_SP_SESSION, e->parent->auxdata) ? "1" : "0";
+	char *str = spotify_track_is_starred(SPFS_SP_SESSION, e->parent->auxdata) ? "1\n" : "0\n";
 	READ_OFFSET(str, buf, size, offset);
 	return size;
 }
 
 static int is_local_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
-	char *str = spotify_track_is_local(SPFS_SP_SESSION, e->parent->auxdata) ? "1" : "0";
+	char *str = spotify_track_is_local(SPFS_SP_SESSION, e->parent->auxdata) ? "1\n" : "0\n";
 	READ_OFFSET(str, buf, size, offset);
 	return size;
 }
 
 static int is_autolinked_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
-	char *str = spotify_track_is_autolinked(SPFS_SP_SESSION, e->parent->auxdata) ? "1" : "0";
+	char *str = spotify_track_is_autolinked(SPFS_SP_SESSION, e->parent->auxdata) ? "1\n" : "0\n";
 	READ_OFFSET(str, buf, size, offset);
 	return size;
 }
 
 static int offlinestatus_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
-	const char *str = spotify_track_offline_status_str(
+	char *str = g_strdup_printf("%s\n", spotify_track_offline_status_str(
 			spotify_track_offline_get_status(e->parent->auxdata)
-			);
+			));
 	READ_OFFSET(str, buf, size, offset);
+	g_free(str);
 	return size;
 }
 
 static int name_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
-	gchar *str = g_strdup(spotify_track_name(e->parent->auxdata));
+	gchar *str = g_strdup_printf("%s\n", (spotify_track_name(e->parent->auxdata)));
 	READ_OFFSET(str, buf, size, offset);
 	g_free(str);
 	return size;
@@ -42,7 +43,7 @@ static int name_read(const char *path, char *buf, size_t size, off_t offset, str
 
 static int disc_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
-	gchar *str = g_strdup_printf("%d",
+	gchar *str = g_strdup_printf("%d\n",
 			spotify_track_disc(e->parent->auxdata));
 	READ_OFFSET(str, buf, size, offset);
 	g_free(str);
@@ -51,7 +52,7 @@ static int disc_read(const char *path, char *buf, size_t size, off_t offset, str
 
 static int index_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
-	gchar *str = g_strdup_printf("%d",
+	gchar *str = g_strdup_printf("%d\n",
 			spotify_track_index(e->parent->auxdata));
 	READ_OFFSET(str, buf, size, offset);
 	g_free(str);
@@ -60,7 +61,7 @@ static int index_read(const char *path, char *buf, size_t size, off_t offset, st
 
 static int popularity_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
-	gchar *str = g_strdup_printf("%d",
+	gchar *str = g_strdup_printf("%d\n",
 			spotify_track_popularity(e->parent->auxdata));
 	READ_OFFSET(str, buf, size, offset);
 	g_free(str);
@@ -69,7 +70,7 @@ static int popularity_read(const char *path, char *buf, size_t size, off_t offse
 
 static int duration_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
-	gchar *str = g_strdup_printf("%d",
+	gchar *str = g_strdup_printf("%d\n",
 			spotify_track_duration(e->parent->auxdata));
 	READ_OFFSET(str, buf, size, offset);
 	g_free(str);
