@@ -300,6 +300,7 @@ int spotify_get_track_info(int *channels, int *rate) {
 GArray *spotify_get_artistbrowse_albums(sp_artistbrowse *ab) {
 	g_mutex_lock(&g_spotify_api_mutex);
 	if (!wait_on_artistbrowse(ab)) {
+		g_mutex_unlock(&g_spotify_api_mutex);
 		g_warn_if_reached();
 		return NULL;
 	}
@@ -318,6 +319,7 @@ GArray *spotify_get_playlists(sp_session *session) {
 	sp_playlistcontainer *plc = sp_session_playlistcontainer(session);
 	if (!wait_on_playlistcontainer(plc)) {
 		g_warn_if_reached();
+		g_mutex_unlock(&g_spotify_api_mutex);
 		return NULL;
 	}
 	int n = sp_playlistcontainer_num_playlists(plc);
@@ -334,6 +336,7 @@ GArray *spotify_get_playlist_tracks(sp_playlist *playlist) {
 	g_mutex_lock(&g_spotify_api_mutex);
 	if (!wait_on_playlist(playlist)) {
 		g_warn_if_reached();
+		g_mutex_unlock(&g_spotify_api_mutex);
 		return NULL;
 	}
 	int n = sp_playlist_num_tracks(playlist);
@@ -444,6 +447,7 @@ char * spotify_artistbrowse_biography(sp_artistbrowse *artistbrowse) {
 	g_mutex_lock(&g_spotify_api_mutex);
 	if (!wait_on_artistbrowse(artistbrowse)) {
 		g_warn_if_reached();
+		g_mutex_unlock(&g_spotify_api_mutex);
 		return NULL;
 	}
 	char *biography = g_strdup(sp_artistbrowse_biography(artistbrowse));
@@ -458,6 +462,7 @@ sp_artistbrowse * spotify_artistbrowse_create(sp_session * session, sp_artist * 
 	g_mutex_lock(&g_spotify_api_mutex);
 	if (!wait_on_artist(artist)) {
 		g_warn_if_reached();
+		g_mutex_unlock(&g_spotify_api_mutex);
 		return NULL;
 	}
 
