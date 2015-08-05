@@ -28,8 +28,6 @@ static int portraits_readdir(const char *path, void *buf, fuse_fill_dir_t filler
 	if (!portraits)
 		return 0;
 
-	spfs_entity *bopp = spfs_entity_file_create("omgzors", NULL);
-	spfs_entity_dir_add_child(e, bopp);
 	for (guint i = 0; i < portraits->len; ++i) {
 		gchar *portrait_name = g_strdup_printf("%d.jpg", i+1);
 
