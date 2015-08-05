@@ -314,6 +314,22 @@ GArray *spotify_get_artistbrowse_albums(sp_artistbrowse *ab) {
 	return albums;
 }
 
+GArray *spotify_get_artistbrowse_portraits(sp_artistbrowse *ab) {
+	g_mutex_lock(&g_spotify_api_mutex);
+	if (!wait_on_artistbrowse(ab)) {
+		g_warn_if_reached();
+		g_mutex_unlock(&g_spotify_api_mutex);
+		return NULL;
+	}
+	int n = sp_artistbrowse_num_portraits(ab);
+	GArray *portraits= g_array_sized_new(false, false, sizeof(const byte *), n);
+	for (int i =0; i < n; ++i) {
+		const byte *p = sp_artistbrowse_portrait(ab, i);
+		g_array_insert_val(portraits, i, p);
+	}
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return portraits;
+}
 GArray *spotify_get_playlists(sp_session *session) {
 	g_mutex_lock(&g_spotify_api_mutex);
 	sp_playlistcontainer *plc = sp_session_playlistcontainer(session);
@@ -442,6 +458,17 @@ void spotifile_artistbrowse_complete_cb(sp_artistbrowse *result, void *userdata)
 
 }
 
+sp_image *spotify_image_create(sp_session *session, const byte *id) {
+	g_return_val_if_fail(session != NULL, NULL);
+	g_return_val_if_fail(id != NULL, NULL);
+
+	g_mutex_lock(&g_spotify_api_mutex);
+	sp_image *image = sp_image_create(session, id);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return image;
+
+}
+
 char * spotify_artistbrowse_biography(sp_artistbrowse *artistbrowse) {
 	g_return_val_if_fail(artistbrowse != NULL, NULL);
 	g_mutex_lock(&g_spotify_api_mutex);
@@ -470,6 +497,9 @@ sp_artistbrowse * spotify_artistbrowse_create(sp_session * session, sp_artist * 
 	g_mutex_unlock(&g_spotify_api_mutex);
 	return ab;
 }
+
+/* Image "getters"*/
+SPFS_SPOTIFY_API_FUNC2(const void *, image, data, size_t *, size)
 
 /* Playlist "getters"*/
 SPFS_SPOTIFY_API_FUNC(const gchar *, playlist, name)

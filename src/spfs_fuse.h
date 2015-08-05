@@ -8,13 +8,16 @@
 #include "spfs_fuse_entity.h"
 struct fuse_operations spfs_get_fuse_operations();
 
-#define READ_OFFSET(_Str, _Buf, _Sz, _Off) do {\
-	if ((strlen(_Str)) > (size_t)_Off) { \
-		if ( _Off + _Sz > strlen(_Str)) \
-			_Sz = strlen(_Str) - _Off; \
-		memcpy(_Buf, _Str + _Off, _Sz); \
+#define READ_SIZED_OFFSET(_Src, _SrcSz, _Buf, _Sz, _Off) do {\
+	if (_SrcSz > (size_t)_Off) { \
+		if ( _Off + _Sz > _SrcSz) \
+			_Sz = _SrcSz - _Off; \
+		memcpy(_Buf, _Src + _Off, _Sz); \
 	} \
 	else _Sz = 0;  } while (0)
+
+
+#define READ_OFFSET(_Str, _Buf, _Sz, _Off) READ_SIZED_OFFSET(_Str, strlen(_Str), _Buf, _Sz, _Off)
 
 struct spfs_data {
 	sp_session *session;

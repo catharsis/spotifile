@@ -16,6 +16,7 @@ const char * spotify_track_offline_status_str(sp_track_offline_status);
 GArray *spotify_get_playlists(sp_session *session);
 GArray *spotify_get_playlist_tracks(sp_playlist *playlist);
 GArray *spotify_get_artistbrowse_albums(sp_artistbrowse *artistbrowse);
+GArray *spotify_get_artistbrowse_portraits(sp_artistbrowse *artistbrowse);
 
 /*misc. playback*/
 bool spotify_play_track(sp_session *session, sp_track *track);
@@ -47,6 +48,10 @@ bool spotify_track_is_local(sp_session *session, sp_track *track);
 bool spotify_track_is_autolinked(sp_session *session, sp_track *track);
 sp_track_offline_status spotify_track_offline_get_status(sp_track *track);
 sp_artist *spotify_track_artist(sp_track *track, int index);
+
+/* images */
+sp_image * spotify_image_create(sp_session *session, const byte *id);
+const void * spotify_image_data(sp_image *image, size_t *size);
 
 /*playlists*/
 const gchar * spotify_playlist_name(sp_playlist *playlist);

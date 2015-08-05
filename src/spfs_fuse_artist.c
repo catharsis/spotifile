@@ -12,6 +12,41 @@ static int name_read(const char *path, char *buf, size_t size, off_t offset, str
 	return size;
 }
 
+static int portrait_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	sp_image *image = e->auxdata;
+	size_t image_size;
+	const void * image_data = spotify_image_data(image, &image_size);
+	READ_SIZED_OFFSET((char *)image_data, image_size, buf, size, offset);
+	return size;
+}
+
+static int portraits_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
+		struct fuse_file_info *fi) {
+	spfs_entity *e = (spfs_entity *)fi->fh;
+	GArray *portraits = spotify_get_artistbrowse_portraits(e->parent->auxdata);
+	if (!portraits)
+		return 0;
+
+	spfs_entity *bopp = spfs_entity_file_create("omgzors", NULL);
+	spfs_entity_dir_add_child(e, bopp);
+	for (guint i = 0; i < portraits->len; ++i) {
+		gchar *portrait_name = g_strdup_printf("%d.jpg", i+1);
+
+		if (!spfs_entity_dir_has_child(e->e.dir, portrait_name)) {
+			spfs_entity *portrait_file = spfs_entity_file_create(portrait_name, portrait_read);
+			portrait_file->auxdata = spotify_image_create(
+					SPFS_SP_SESSION,
+					g_array_index(portraits, const byte *, i)
+					);
+			spfs_entity_dir_add_child(e, portrait_file);
+		}
+
+		g_free(portrait_name);
+	}
+	return 0;
+}
+
 static int albums_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
@@ -73,6 +108,9 @@ spfs_entity *create_artist_browse_dir(sp_artist *artist) {
 
 	spfs_entity_dir_add_child(artist_dir,
 			spfs_entity_dir_create("albums", albums_readdir));
+
+	spfs_entity_dir_add_child(artist_dir,
+			spfs_entity_dir_create("portraits", portraits_readdir));
 
 	spfs_entity_dir_add_child(artist_browse_dir, artist_dir);
 	return artist_dir;
