@@ -32,6 +32,8 @@ Playback!
 
 and so forth.
 
+![gif](http://i.imgur.com/jP91r79.gif)
+
 ## Roadmap/Open issues
 Searching is currently TBD; though I'm considering making use of ioctl's for this.
 Convenience scripts/wrappers (for stuff like listing search results & dmenu/rofi interop) will most likely be needed for this to be usable on a day-to-day basis.
