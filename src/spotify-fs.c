@@ -21,6 +21,7 @@ static struct fuse_opt spfs_opts[] = {
 	SPFS_OPT("password=%s",		spotify_password, 0),
 	SPFS_OPT("--rememberme=true",	remember_me, 1),
 	SPFS_OPT("--rememberme=false",	remember_me, 0),
+	SPFS_OPT("-c %s",	config_file, 0),
 	FUSE_OPT_KEY("-V",			KEY_VERSION),
 	FUSE_OPT_KEY("--version",	KEY_VERSION),
 	FUSE_OPT_KEY("-h",			KEY_HELP),
@@ -39,8 +40,9 @@ static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_ar
 					"		-o opt,[opt...]	mount options\n"
 					"		-h	--help		this cruft\n"
 					"		-V	--version	print version\n"
+					"		-c configfile		path to configuration file\n"
 					"\n"
-					"spotifile options:\n"
+					"spotify options:\n"
 					"		-o username=STRING\n"
 					"		-o password=STRING\n"
 					"		--rememberme=BOOL\n"
@@ -85,6 +87,38 @@ void spfs_log_handler(const gchar *log_domain, GLogLevelFlags log_level, const g
 	fflush(f);
 }
 
+static void load_configuration(struct spotifile_config *config)
+{
+	GKeyFile * config_file = g_key_file_new();
+	if (!config->config_file) {
+		goto out;
+	}
+
+	g_debug("Loading configuration from %s", config->config_file);
+	GError *err = NULL;
+	if (!g_key_file_load_from_file(config_file, config->config_file, G_KEY_FILE_NONE, &err)) {
+		g_warning("Could not load configuration from %s: %s", config->config_file, err->message);
+		goto out;
+	}
+
+	// command line options override config file ones
+	if (!config->spotify_username) {
+		config->spotify_username = g_key_file_get_string(config_file, "spotify", "username", &err);
+		if (!config->spotify_username) {
+			g_message("No Spotify username specified: %s", err->message);
+		}
+	}
+
+	if (!config->spotify_password) {
+		config->spotify_password = g_key_file_get_string(config_file, "spotify", "password", &err);
+		if (!config->spotify_password) {
+			g_message("No Spotify password specified: %s", err->message);
+		}
+	}
+
+out:
+	g_key_file_free(config_file);
+}
 int main(int argc, char *argv[])
 {
 	int retval = 0;
@@ -99,6 +133,8 @@ int main(int argc, char *argv[])
 	fuse_opt_parse(&args, &conf, spfs_opts, spfs_opt_process);
 	fuse_opt_add_arg(&args, "-oentry_timeout=0");
 	g_log_set_default_handler(spfs_log_handler, stdout);
+
+	load_configuration(&conf);
 
 	if (conf.spotify_username != NULL && !conf.spotify_password)
 	{

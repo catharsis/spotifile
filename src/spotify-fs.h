@@ -20,9 +20,9 @@
 struct spotifile_config {
 	char *spotify_username;
 	char *spotify_password;
+	char *config_file;
 	bool remember_me;
 };
-
 
 static const char application_name[] = "spotifile";
 #endif /* SPOTIFY_FS_H */
