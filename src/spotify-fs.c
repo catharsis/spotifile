@@ -87,8 +87,11 @@ void spfs_log_handler(const gchar *log_domain, GLogLevelFlags log_level, const g
 static void load_configuration(struct spotifile_config *config)
 {
 	GKeyFile * config_file = g_key_file_new();
+	gchar *config_path = NULL;
 	if (!config->config_file) {
-		goto out;
+		gchar *config_path = g_build_filename(g_get_user_config_dir(), "spotifile.conf", NULL);
+		g_debug("No config file specified, falling back to %s", config_path);
+		config->config_file = config_path;
 	}
 
 	g_debug("Loading configuration from %s", config->config_file);
@@ -115,6 +118,7 @@ static void load_configuration(struct spotifile_config *config)
 
 out:
 	g_key_file_free(config_file);
+	g_free(config_path);
 }
 int main(int argc, char *argv[])
 {
