@@ -19,8 +19,6 @@ enum {
 static struct fuse_opt spfs_opts[] = {
 	SPFS_OPT("username=%s",		spotify_username, 0),
 	SPFS_OPT("password=%s",		spotify_password, 0),
-	SPFS_OPT("--rememberme=true",	remember_me, 1),
-	SPFS_OPT("--rememberme=false",	remember_me, 0),
 	SPFS_OPT("-c %s",	config_file, 0),
 	FUSE_OPT_KEY("-V",			KEY_VERSION),
 	FUSE_OPT_KEY("--version",	KEY_VERSION),
@@ -45,7 +43,6 @@ static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_ar
 					"spotify options:\n"
 					"		-o username=STRING\n"
 					"		-o password=STRING\n"
-					"		--rememberme=BOOL\n"
 					, outargs->argv[0]);
 			exit(1);
 		case KEY_VERSION:
