@@ -54,6 +54,8 @@ If everything goes as expected, you should now be able to `cd` to `/tmp/spotifil
     $ cat connection
     logged in
 
+To unmount the **spotifile**, simply run `fusermount -u -z /tmp/spotifile`.
+
 ## Roadmap/Open issues
 Searching is currently TBD; though I'm considering making use of ioctl's for this.
 Convenience scripts/wrappers (for stuff like listing search results & dmenu/rofi interop) will most likely be needed for this to be usable on a day-to-day basis.
