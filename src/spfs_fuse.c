@@ -35,7 +35,6 @@ static void fill_dir_children(spfs_dir *dir, void *buf, fuse_fill_dir_t filler) 
 
 int spfs_getattr(const char *path, struct stat *statbuf)
 {
-	g_debug ("getattr: %s", path);
 	memset(statbuf, 0, sizeof(struct stat));
 	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
 	if (e != NULL) {
@@ -58,7 +57,6 @@ int connection_read(const char *path, char *buf, size_t size, off_t offset, stru
 
 int spfs_open(const char *path, struct fuse_file_info *fi)
 {
-	g_debug("open: %s", path);
 	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
 	g_return_val_if_fail(e != NULL, -ENOENT);
 	fi->direct_io = spfs_entity_get_direct_io(e);
@@ -69,7 +67,6 @@ int spfs_open(const char *path, struct fuse_file_info *fi)
 
 int spfs_opendir(const char *path, struct fuse_file_info *fi)
 {
-	g_debug("opendir: %s", path);
 	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
 	g_return_val_if_fail(e != NULL, -ENOENT);
 	g_return_val_if_fail(e->type == SPFS_DIR, -EINVAL);
@@ -80,7 +77,6 @@ int spfs_opendir(const char *path, struct fuse_file_info *fi)
 int spfs_read(const char *path, char *buf, size_t size, off_t offset,
 		struct fuse_file_info *fi)
 {
-	g_debug("read: %s", path);
 	spfs_entity *e = (spfs_entity *) fi->fh;
 	g_return_val_if_fail(e->type == SPFS_FILE, -EISDIR);
 
@@ -92,7 +88,6 @@ int spfs_read(const char *path, char *buf, size_t size, off_t offset,
 }
 
 int spfs_readlink(const char *path, char *buf, size_t len) {
-	g_debug("readlink: %s", path);
 	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
 	g_return_val_if_fail(e != NULL, -ENOENT);
 	g_return_val_if_fail(e->type == SPFS_LINK, -ENOENT);
@@ -108,7 +103,6 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	int ret = 0;
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
-	g_debug("readdir path:%s ", path);
 	spfs_entity *e = (spfs_entity *)fi->fh;
 	if (!e || e->type != SPFS_DIR) {
 		return -ENOENT;
