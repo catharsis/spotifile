@@ -452,13 +452,13 @@ bool spotify_play_track(sp_session *session, sp_track *track) {
 	sp_error sperr = sp_session_player_load(session, track);
 	if(sperr == SP_ERROR_OK) {
 		sp_session_player_play(session, true);
+		g_playback->playing = track;
 	}
 	else {
 		g_warning("Error loading track: %s", sp_error_message(sperr));
 		ret = false;
 	}
 	g_mutex_unlock(&g_spotify_api_mutex);
-	g_playback->playing = track;
 	return ret;
 }
 
