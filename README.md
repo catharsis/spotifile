@@ -2,10 +2,10 @@
 spotifile 
 =========
 
-[FUSE](http://fuse.sourceforge.net/) file system for Spotify
+[FUSE](http://fuse.sourceforge.net/) file system for [Spotify](https://www.spotify.com)
 
 The goal of this project is to be able to provide a synthethic file system
-as an interface towards Spotify. That includes, for example, being able
+as an interface towards [Spotify](https://www.spotify.com). That includes, for example, being able
 to check the state of your session by doing:
 
     $ cat /home/alofgren/spotifile/connection
@@ -35,7 +35,7 @@ and so forth.
 ![gif](http://i.imgur.com/jP91r79.gif)
 
 ## Quick start
-The easiest way to get started with **`spotifile`** is to create a mountpoint somewhere (say, `/tmp/spotifile`) and run **`spotifile`** like so `./spotifile -o username=spotify_username -o password=spotify_password /tmp/spotifile`. However, that's not recommendable since it'll leave your Spotify credentials in the open for anyone else with access to your machine. Instead, most users should opt to create a configuration file `~/.config/spotifile.conf`, containing the credentials as such;
+The easiest way to get started with **`spotifile`** is to create a mountpoint somewhere (say, `/tmp/spotifile`) and run **`spotifile`** like so `./spotifile -o username=spotify_username -o password=spotify_password /tmp/spotifile`. However, that's not recommendable since it'll leave your [Spotify](https://www.spotify.com) credentials in the open for anyone else with access to your machine. Instead, most users should opt to create a configuration file `~/.config/spotifile.conf`, containing the credentials as such;
 
     [spotifile]
     username=myUsername
