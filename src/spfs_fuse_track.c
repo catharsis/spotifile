@@ -118,9 +118,11 @@ static int wav_read(const char *path, char *buf, size_t size, off_t offset, stru
 	sp_session *session = SPFS_SP_SESSION;
 	int channels, rate, duration;
 
-	if (!spotify_play_track(session, e->parent->auxdata)) {
-		g_warning("Failed to play track!");
-		return 0;
+	if (offset == 0) {
+		if (!spotify_play_track(session, e->parent->auxdata)) {
+			g_warning("Failed to play track!");
+			return 0;
+		}
 	}
 
 	memset(buf, 0, size);

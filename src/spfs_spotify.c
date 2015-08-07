@@ -118,6 +118,14 @@ static void spotify_end_of_track(sp_session *session) {
 	g_playback_done = true;
 }
 
+static void spotify_play_token_lost(sp_session *session) {
+	g_warning("Spotify play token lost - unloading current track!");
+	g_mutex_lock(&g_playback->mutex);
+	g_playback->playing = NULL;
+	g_cond_signal(&(g_playback->cond));
+	g_mutex_unlock(&g_playback->mutex);
+}
+
 static void spotify_audio_buffer_stats(sp_session *session, sp_audio_buffer_stats *stats) {
 	g_mutex_lock(&g_playback->mutex);
 	stats->samples = g_playback->nsamples;
@@ -195,13 +203,15 @@ static sp_session_callbacks spotify_callbacks = {
 	.notify_main_thread = spotify_notify_main_thread,
 	.metadata_updated = spotify_metadata_updated,
 	.logged_in = spotify_logged_in,
-	.connection_error = spotify_connection_error,
 	.logged_out = spotify_logged_out,
+	.connection_error = spotify_connection_error,
 	.log_message = spotify_log_message,
 	.music_delivery = spotify_music_delivery,
 	.get_audio_buffer_stats = spotify_audio_buffer_stats,
 	.start_playback = spotify_start_playback,
-	.end_of_track = spotify_end_of_track
+	.end_of_track = spotify_end_of_track,
+	.play_token_lost = spotify_play_token_lost
+
 };
 
 sp_session * spotify_session_init(const char *username, const char *password, const char *blob)
@@ -379,7 +389,7 @@ size_t spotify_get_audio(char *buf, size_t size) {
 	}
 
 	g_mutex_lock(&(g_playback->mutex));
-	while (g_queue_is_empty(g_playback->queue)) {
+	while (g_playback->playing != NULL && g_queue_is_empty(g_playback->queue)) {
 		g_playback->stutter += 1;
 		g_cond_wait(&(g_playback->cond), &(g_playback->mutex));
 	}
