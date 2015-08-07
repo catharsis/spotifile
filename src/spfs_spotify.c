@@ -183,7 +183,7 @@ static void spotify_logged_in(sp_session *session, sp_error error)
 
 static void spotify_connection_error(sp_session *session, sp_error error)
 {
-	g_warning("Connection error %d: %s\n", error, sp_error_message(error));
+	g_warning("Connection error %d: %s", error, sp_error_message(error));
 }
 
 static void spotify_notify_main_thread(sp_session *session)
@@ -268,7 +268,6 @@ void spotify_threads_destroy()
 }
 
 
-/* locking accessors */
 sp_connectionstate spotify_connectionstate(sp_session * session) {
 	sp_connectionstate s;
 	g_mutex_lock(&g_spotify_api_mutex);
@@ -629,7 +628,7 @@ void * spotify_thread_start(void *arg) {
 			err = sp_session_process_events(session, &event_timeout);
 			g_mutex_unlock(&g_spotify_api_mutex);
 			if (err != SP_ERROR_OK) {
-				g_warning("spotify session processing thread: Could not process events (%d): %s\n", err, sp_error_message(err));
+				g_warning("spotify session processing thread: Could not process events (%d): %s", err, sp_error_message(err));
 			}
 		} while (event_timeout == 0);
 		g_mutex_lock(&g_spotify_notify_mutex);
