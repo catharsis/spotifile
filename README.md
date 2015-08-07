@@ -34,6 +34,26 @@ and so forth.
 
 ![gif](http://i.imgur.com/jP91r79.gif)
 
+## Quick start
+The easiest way to get started with **`spotifile`** is to create a mountpoint somewhere (say, `/tmp/spotifile`) and run **`spotifile`** like so `./spotifile -o username=spotify_username -o password=spotify_password /tmp/spotifile`. However, that's not recommendable since it'll leave your Spotify credentials in the open for anyone else with access to your machine. Instead, most users should opt to create a configuration file `~/.config/spotifile.conf`, containing the credentials as such;
+
+    [spotifile]
+    username=myUsername
+    password=myPassword
+Depending on your situation, it is likely a good idea to set as restrictive permissions on the file as possible - it does contain sensitive data after all!
+
+    chmod 600 ~/.config/spotifile.conf
+
+Now, you can leave out the credentials from the command line;
+
+    ./spotifile /tmp/spotifile
+
+If everything goes as expected, you should now be able to `cd` to `/tmp/spotifile`, and check your connection status like this;
+
+    $ cd /tmp/spotifile
+    $ cat connection
+    logged in
+
 ## Roadmap/Open issues
 Searching is currently TBD; though I'm considering making use of ioctl's for this.
 Convenience scripts/wrappers (for stuff like listing search results & dmenu/rofi interop) will most likely be needed for this to be usable on a day-to-day basis.
