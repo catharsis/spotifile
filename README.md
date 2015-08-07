@@ -2,7 +2,7 @@
 spotifile 
 =========
 
-FUSE file system for Spotify
+[FUSE](http://fuse.sourceforge.net/) file system for Spotify
 
 The goal of this project is to be able to provide a synthethic file system
 as an interface towards Spotify. That includes, for example, being able
