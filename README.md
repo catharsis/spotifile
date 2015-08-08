@@ -56,14 +56,6 @@ If everything goes as expected, you should now be able to `cd` to `/tmp/spotifil
 
 To unmount the **spotifile**, simply run `fusermount -u -z /tmp/spotifile`.
 
-## Roadmap/Open issues
-Searching is currently TBD; though I'm considering making use of ioctl's for this.
-Convenience scripts/wrappers (for stuff like listing search results & dmenu/rofi interop) will most likely be needed for this to be usable on a day-to-day basis.
-
-Currently, the focus is to get something "dog-foodable" going. For me, that includes at the very least convenient playback (through mplayer or aplay for example) with embedded riff/wave headers to avoid the drudgery of having to specify sample rates and simple browsing of existing play lists. Once that is done, I might consider a 0.1 release in some form. 
-
-Further milestones include seek (for audio), searching, fleshed out metadata for all objects/subsystems (artists, tracks, albums, etc.). Eventually, when things have matured a bit, I hope to also include some writable parts. For example, being able to create new playlists with mkdir and ln would be cool. 
-
 ## Usage
 Before all else, let's consider the directory structure of a running **spotifile** instance, and briefly discuss its contents:
     
@@ -150,6 +142,14 @@ Looking inside of that directory, we see more information on the artist:
 And that's the whole tour for now! 
 
 Feel free to explore for yourself, and feel free to provide feedback, report issues, or send patches/PRs!
+
+## Roadmap/Open issues
+Searching is currently TBD; though I'm considering making use of ioctl's for this.
+Convenience scripts/wrappers (for stuff like listing search results & dmenu/rofi interop) will most likely be needed for this to be usable on a day-to-day basis.
+
+Currently, the focus is to get something "dog-foodable" going. For me, that includes at the very least convenient playback (through mplayer or aplay for example) with embedded riff/wave headers to avoid the drudgery of having to specify sample rates and simple browsing of existing play lists. Once that is done, I might consider a 0.1 release in some form. 
+
+Further milestones include seek (for audio), searching, fleshed out metadata for all objects/subsystems (artists, tracks, albums, etc.). Eventually, when things have matured a bit, I hope to also include some writable parts. For example, being able to create new playlists with mkdir and ln would be cool. 
 
 ## Oh dear, why?
 For fun, mostly. But also because I've been looking for a media playing solution that is both scriptable and ties into my otherwise somewhat minimalistic desktop environment nicely. I think this approach is not as crazy as it might initially sound for those purposes. It's worth a shot at least, yes?
