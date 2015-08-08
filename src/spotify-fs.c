@@ -92,7 +92,7 @@ static void load_configuration(struct spotifile_config *config)
 	GKeyFile * config_file = g_key_file_new();
 	gchar *config_path = NULL;
 	if (!config->config_file) {
-		gchar *config_path = g_build_filename(g_get_user_config_dir(), "spotifile.conf", NULL);
+		gchar *config_path = g_build_filename(g_get_user_config_dir(), "spotifile", "spotifile.conf", NULL);
 		g_debug("No config file specified, falling back to %s", config_path);
 		config->config_file = config_path;
 	}

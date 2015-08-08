@@ -221,8 +221,8 @@ sp_session * spotify_session_init(const char *username, const char *password, co
 	sp_session *session;
 	memset(&config, 0, sizeof(config));
 	config.api_version = SPOTIFY_API_VERSION;
-	config.cache_location = "/var/tmp/";
-	config.settings_location = "/tmp";
+	config.cache_location = g_build_filename(g_get_user_cache_dir(), "spotifile", NULL);
+	config.settings_location = g_build_filename(g_get_user_config_dir(), "spotifile", "libspotify", NULL);
 	config.application_key = spfs_appkey_get(&config.application_key_size);
 	config.callbacks = &spotify_callbacks;
 
