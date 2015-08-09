@@ -37,6 +37,11 @@ void * spotify_thread_start(void *arg);
 				return false; \
 			} \
 		} \
+		sp_error err = sp_ ## _Type ## _error(_Type); \
+		if (err != SP_ERROR_OK) { \
+			g_warning(STRINGIFY(_Type ) " error: %s", sp_error_message(err)); \
+			return false; \
+		} \
 		return true; \
 	}
 
@@ -77,6 +82,21 @@ void * spotify_thread_start(void *arg);
 }
 
 
+sp_error sp_playlistcontainer_error(sp_playlistcontainer *unused) {
+	return SP_ERROR_OK;
+}
+sp_error sp_artist_error(sp_artist *unused) {
+	return SP_ERROR_OK;
+}
+sp_error sp_user_error(sp_user *unused) {
+	return SP_ERROR_OK;
+}
+sp_error sp_playlist_error(sp_playlist *unused) {
+	return SP_ERROR_OK;
+}
+sp_error sp_album_error(sp_album *unused) {
+	return SP_ERROR_OK;
+}
 SPFS_WAIT_ON_FUNC(image)
 SPFS_WAIT_ON_FUNC(artist)
 SPFS_WAIT_ON_FUNC(album)
