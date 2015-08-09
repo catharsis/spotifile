@@ -129,6 +129,7 @@ void spfs_entity_dir_add_child(spfs_entity *parent, spfs_entity *child) {
 	g_return_if_fail(parent != NULL);
 	g_return_if_fail(child != NULL);
 	g_return_if_fail(parent->type == S_IFDIR);
+	g_return_if_fail(strlen(child->name) > 0);
 
 	child->parent = parent;
 	g_hash_table_insert(parent->e.dir->children, child->name, child);
