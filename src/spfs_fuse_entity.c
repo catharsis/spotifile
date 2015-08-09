@@ -154,6 +154,7 @@ static gchar * sanitize_name(const gchar *n) {
 		}
 		++p;
 	}
+	san_name = g_strstrip(san_name);
 	return san_name;
 }
 
