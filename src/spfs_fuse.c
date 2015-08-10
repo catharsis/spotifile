@@ -1,5 +1,4 @@
 #include "spotify-fs.h"
-#include "spfs_spotify.h"
 #include "spfs_fuse.h"
 #include "spfs_fuse_playlist.h"
 #include "spfs_path.h"

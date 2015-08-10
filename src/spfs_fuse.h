@@ -6,6 +6,7 @@
 #include <string.h>
 #include <errno.h>
 #include "spfs_fuse_entity.h"
+#include "spfs_spotify.h"
 struct fuse_operations spfs_get_fuse_operations();
 
 #define READ_SIZED_OFFSET(_Src, _SrcSz, _Buf, _Sz, _Off) do {\
