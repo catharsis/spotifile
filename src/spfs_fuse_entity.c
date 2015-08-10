@@ -1,4 +1,5 @@
 #include "spfs_fuse_entity.h"
+#include "spfs_fuse_utils.h"
 #include "spfs_path.h"
 #include <string.h>
 #include <unistd.h>
@@ -145,23 +146,9 @@ void spfs_entity_link_set_target(spfs_entity *link, const gchar *target) {
 	link->e.link->target = g_strdup(target);
 }
 
-static gchar * sanitize_name(const gchar *n) {
-	gchar *san_name = g_strdup(n), *p = san_name;
-
-	while (*p != '\0') {
-		switch (*p) {
-			case '/': *p = ' '; break;
-			default: break;
-		}
-		++p;
-	}
-	san_name = g_strstrip(san_name);
-	return san_name;
-}
-
 spfs_entity * spfs_entity_dir_get_child(spfs_dir *dir, const char *name) {
 	g_return_val_if_fail(dir != NULL, false);
-	gchar *san_name = sanitize_name(name);
+	gchar *san_name = spfs_sanitize_name(name);
 	spfs_entity *e = g_hash_table_lookup(dir->children, san_name);
 	g_free(san_name);
 	return e;
@@ -175,7 +162,7 @@ static spfs_entity * spfs_entity_create(const gchar *name, SpfsEntityType type) 
 	spfs_entity *e = g_new0(spfs_entity, 1);
 	e->type = type;
 	if (name != NULL) {
-		e->name = sanitize_name(name);
+		e->name = spfs_sanitize_name(name);
 	}
 	e->auxdata = NULL;
 	time_t t = time(NULL);
