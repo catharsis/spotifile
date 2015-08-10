@@ -1,4 +1,5 @@
 #include <string.h>
+#include <sys/types.h>
 #include "spfs_fuse_utils.h"
 static gchar *str_replace(const gchar *s, const gchar *c, const gchar *replacement) {
 	size_t s_l = strlen(s);
