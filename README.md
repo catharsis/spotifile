@@ -1,5 +1,4 @@
-[![Build Status](https://travis-ci.org/catharsis/spotifile.svg?branch=master)](https://travis-ci.org/catharsis/spotifile)
-spotifile 
+spotifile [![Build Status](https://travis-ci.org/catharsis/spotifile.svg?branch=master)](https://travis-ci.org/catharsis/spotifile) 
 =========
 
 [FUSE](http://fuse.sourceforge.net/) file system for [Spotify](https://www.spotify.com)
