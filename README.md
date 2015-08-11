@@ -33,6 +33,19 @@ Playback!
 and so forth.
 
 ![gif](http://i.imgur.com/jP91r79.gif)
+## Installation
+
+### Arch Linux
+A PKGBUILD for the latest released version is available in the [AUR](https://aur.archlinux.org/packages/spotifile/).
+
+### Installing from source
+To install **spotifile** from source, do the following
+```Shell
+$ git clone git@github.com:catharsis/spotifile.git spotifile && cd spotifile
+$ autoreconf -si
+$ ./configure && make && make check && make install
+```
+Make sure you have all the required dependencies installed, or the ./configure step will likely complain loudly.
 
 ## Quick start
 The easiest way to get started with **spotifile** is to create a mountpoint somewhere (say, `/tmp/spotifile`) and run it like so `./spotifile -o username=spotify_username -o password=spotify_password /tmp/spotifile`. However, that's not recommendable since it'll leave your [Spotify](https://www.spotify.com) credentials in the open for anyone else with access to your machine. Instead, most users should opt to create a configuration file `~/.config/spotifile/spotifile.conf`, containing the credentials as such;
