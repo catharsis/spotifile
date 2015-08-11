@@ -1,7 +1,11 @@
 #ifndef SPOTIFY_FS_H
 #define SPOTIFY_FS_H
 #define CONN_STATE_SIZE 128
-#define SPOTIFILE_VERSION "v0.0.1"
+
+#ifndef SPOTIFILE_VERSION
+#error "Undefined version?"
+#endif
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>

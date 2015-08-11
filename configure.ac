@@ -1,4 +1,4 @@
-AC_INIT([spotifile], [0.1])
+AC_INIT([spotifile], m4_esyscmd([./genver.sh]))
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Werror])
 AM_PROG_AR
 LT_INIT
@@ -15,6 +15,7 @@ PKG_CHECK_MODULES([FUSE], [fuse])
 PKG_CHECK_MODULES([CHECK], [check])
 PKG_CHECK_MODULES([SPOTIFY], [libspotify])
 
+AC_SUBST([PACKAGE_VERSION], [AC_PACKAGE_VERSION])
 AC_SUBST([AM_CPPFLAGS])
 AC_SUBST([AM_CFLAGS])
 AC_CONFIG_FILES([

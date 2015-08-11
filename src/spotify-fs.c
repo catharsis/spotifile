@@ -49,7 +49,7 @@ static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_ar
 					, outargs->argv[0]);
 			exit(1);
 		case KEY_VERSION:
-			fprintf(stderr, "spotifile version %s\n", SPOTIFILE_VERSION);
+			fprintf(stderr, "spotifile version " SPOTIFILE_VERSION "\n");
 			exit(0);
 	}
 	return 1;
