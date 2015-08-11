@@ -1,4 +1,5 @@
-AC_INIT([spotifile], m4_esyscmd([./genver.sh]))
+AC_INIT([spotifile], m4_esyscmd([./genver.sh]),
+[anton.lofgren@gmail.com])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Werror])
 AM_PROG_AR
 LT_INIT
