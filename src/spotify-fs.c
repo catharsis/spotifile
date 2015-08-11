@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <syslog.h>
 #include <glib.h>
 #include <libspotify/api.h>
 #include "spotify-fs.h"
@@ -20,11 +21,20 @@ static struct fuse_opt spfs_opts[] = {
 	SPFS_OPT("username=%s",		spotify_username, 0),
 	SPFS_OPT("password=%s",		spotify_password, 0),
 	SPFS_OPT("-c %s",	config_file, 0),
+	SPFS_OPT("-f",			foreground, 1),
+	SPFS_OPT("-d",			debug, 1),
+	FUSE_OPT_KEY("-f",			FUSE_OPT_KEY_KEEP),
+	FUSE_OPT_KEY("-d",			FUSE_OPT_KEY_KEEP),
 	FUSE_OPT_KEY("-V",			KEY_VERSION),
 	FUSE_OPT_KEY("--version",	KEY_VERSION),
 	FUSE_OPT_KEY("-h",			KEY_HELP),
 	FUSE_OPT_KEY("--help",		KEY_HELP),
 	FUSE_OPT_END
+};
+
+struct spotifile_log_options{
+	FILE *fp;
+	bool debug;
 };
 
 static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_args *outargs)
@@ -55,8 +65,35 @@ static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_ar
 	return 1;
 }
 
-void spfs_log_handler(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
-	FILE *f = (FILE *)user_data;
+static int log_level_to_syslog_level(GLogLevelFlags log_level) {
+	switch (log_level) {
+		case G_LOG_LEVEL_ERROR:
+			return LOG_ERR;
+			break;
+		case G_LOG_LEVEL_CRITICAL:
+			return LOG_CRIT;
+			break;
+		case G_LOG_LEVEL_WARNING:
+			return LOG_WARNING;
+			break;
+		case G_LOG_LEVEL_MESSAGE:
+			return LOG_NOTICE;
+			break;
+		case G_LOG_LEVEL_INFO:
+			return LOG_INFO;
+			break;
+		case G_LOG_LEVEL_DEBUG:
+			return LOG_DEBUG;
+			break;
+		default:
+			g_warn_if_reached();
+			return LOG_DEBUG;
+			break;
+
+	}
+}
+
+static char log_level_ind(GLogLevelFlags log_level) {
 	char lvl;
 	switch (log_level) {
 		case G_LOG_LEVEL_ERROR:
@@ -83,8 +120,26 @@ void spfs_log_handler(const gchar *log_domain, GLogLevelFlags log_level, const g
 			break;
 
 	}
-	fprintf(f, "[%c] %s: %s\n", lvl, application_name, message);
-	fflush(f);
+	return lvl;
+}
+
+void spfs_log_handler(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
+
+	struct spotifile_log_options *options = (struct spotifile_log_options *)user_data;
+	FILE *f = options->fp;
+
+	if (log_level == G_LOG_LEVEL_DEBUG && !(options->debug))
+		return;
+
+	if (options->fp == NULL) {
+		syslog( log_level_to_syslog_level(log_level),
+				message
+				);
+	}
+	else {
+		fprintf(f, "[%c] %s: %s\n", log_level_ind(log_level), application_name, message);
+		fflush(f);
+	}
 }
 
 static void load_configuration(struct spotifile_config *config)
@@ -128,15 +183,30 @@ int main(int argc, char *argv[])
 	int retval = 0;
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 	struct spotifile_config conf;
+	struct spotifile_log_options *log_options;
+
 	memset(&conf, 0, sizeof(conf));
+	log_options = g_new0(struct spotifile_log_options, 1);
+
 	if ((getuid() == 0) || (geteuid() == 0)) {
 		fprintf(stderr, "Running %s as root is not a good idea\n", application_name);
 		return 1;
 	}
 
+
 	fuse_opt_parse(&args, &conf, spfs_opts, spfs_opt_process);
 	fuse_opt_add_arg(&args, "-oentry_timeout=0");
-	g_log_set_default_handler(spfs_log_handler, stdout);
+
+	if (conf.debug)
+		conf.foreground = 1;
+
+	log_options->debug = (bool) conf.debug;
+	if (conf.foreground)
+		log_options->fp = stdout;
+	else
+		log_options->fp = NULL;
+
+	g_log_set_default_handler(spfs_log_handler, log_options);
 
 	load_configuration(&conf);
 

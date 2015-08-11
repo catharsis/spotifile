@@ -25,6 +25,8 @@ struct spotifile_config {
 	char *spotify_username;
 	char *spotify_password;
 	char *config_file;
+	int foreground;
+	int debug;
 };
 
 static const char application_name[] = "spotifile";
