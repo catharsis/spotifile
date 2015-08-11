@@ -194,7 +194,6 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-
 	fuse_opt_parse(&args, &conf, spfs_opts, spfs_opt_process);
 	fuse_opt_add_arg(&args, "-oentry_timeout=0");
 
@@ -211,10 +210,20 @@ int main(int argc, char *argv[])
 
 	load_configuration(&conf);
 
-	if (conf.spotify_username != NULL && !conf.spotify_password)
+	if (conf.spotify_username != NULL && !conf.spotify_password && isatty(fileno(stdin)))
 	{
 		if((conf.spotify_password = getpass("spotify password:")) == NULL)
 			handle_error("getpass");
+	}
+
+	if (!conf.spotify_username) {
+		g_warning("Missing Spotify username");
+		exit(1);
+	}
+
+	if (!conf.spotify_password) {
+		g_warning("Missing Spotify password");
+		exit(1);
 	}
 
 	struct fuse_operations fuse_ops = spfs_get_fuse_operations();
