@@ -133,6 +133,7 @@ void spfs_log_handler(const gchar *log_domain, GLogLevelFlags log_level, const g
 
 	if (options->fp == NULL) {
 		syslog( log_level_to_syslog_level(log_level),
+				"%s",
 				message
 				);
 	}
