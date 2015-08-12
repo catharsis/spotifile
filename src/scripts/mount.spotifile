@@ -1,0 +1,23 @@
+#!/usr/bin/python
+# mount.spotifile
+# This is a wrapper script for the main spotifile binary
+# Its primary job is to throw away its second argument, commonly known in mount(8)
+# parlance as the device, since it is not needed and not handled by the main binary.
+import sys, os
+if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        sys.exit(1)
+
+    args = ["spotifile"]
+    args.extend(sys.argv[2:])
+    options = args[3].split(",")
+
+    # Get rid of options that libfuse disagrees with
+    if "noauto" in options:
+        options.remove("noauto")
+
+    if "user" in options:
+        options.remove("user")
+
+    args[3] = ",".join(options)
+    os.execvp("spotifile", args)

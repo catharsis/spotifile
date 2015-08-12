@@ -1,6 +1,7 @@
 AM_CFLAGS += -std=c99 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function $(SPOTIFY_CFLAGS) $(GLIB_CFLAGS) $(FUSE_CFLAGS) 
 AM_CPPFLAGS += -I$(top_srcdir)/src -D_GNU_SOURCE=1 -DSPOTIFILE_VERSION=\"@PACKAGE_VERSION@\"
 bin_PROGRAMS = spotifile
+dist_sbin_SCRIPTS = src/scripts/mount.spotifile
 check_PROGRAMS = tests_spfs_fuse_test tests_spfs_fuse_utils_test
 TESTS = $(check_PROGRAMS)
 spotifile_LDADD = $(SPOTIFY_LIBS) $(GLIB_LIBS) $(FUSE_LIBS)
