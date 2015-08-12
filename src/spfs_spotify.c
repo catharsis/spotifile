@@ -645,10 +645,10 @@ void * spotify_thread_start(void *arg) {
 		do {
 			g_mutex_lock(&g_spotify_api_mutex);
 			err = sp_session_process_events(session, &event_timeout);
-			g_mutex_unlock(&g_spotify_api_mutex);
 			if (err != SP_ERROR_OK) {
 				g_warning("spotify session processing thread: Could not process events (%d): %s", err, sp_error_message(err));
 			}
+			g_mutex_unlock(&g_spotify_api_mutex);
 		} while (event_timeout == 0);
 		g_mutex_lock(&g_spotify_notify_mutex);
 	}
