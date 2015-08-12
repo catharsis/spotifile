@@ -178,8 +178,8 @@ void spfs_destroy(void *userdata)
 {
 	struct spfs_data * spfsdata = (struct spfs_data *)userdata;
 	sp_session *session = spfsdata->session;
-	spotify_session_destroy(session);
 	spotify_threads_destroy();
+	spotify_session_destroy(session);
 	spfs_entity_destroy(spfsdata->root);
 	g_message("%s destroyed", application_name);
 }
