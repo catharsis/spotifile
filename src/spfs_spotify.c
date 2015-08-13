@@ -235,23 +235,33 @@ static sp_session_callbacks spotify_callbacks = {
 
 sp_session * spotify_session_init(const char *username, const char *password, const char *blob)
 {
+	gchar *cache_location = g_build_filename(g_get_user_cache_dir(), "spotifile", NULL);
+	gchar *settings_location = g_build_filename(g_get_user_config_dir(), "spotifile", "libspotify", NULL);
 	sp_session_config config;
-	sp_error error;
-	sp_session *session;
 	memset(&config, 0, sizeof(config));
+
+	void *appkey = spfs_appkey_get(&config.application_key_size);
+
 	config.api_version = SPOTIFY_API_VERSION;
-	config.cache_location = g_build_filename(g_get_user_cache_dir(), "spotifile", NULL);
-	config.settings_location = g_build_filename(g_get_user_config_dir(), "spotifile", "libspotify", NULL);
-	config.application_key = spfs_appkey_get(&config.application_key_size);
+	config.cache_location = cache_location;
+	config.settings_location = settings_location;
+	config.application_key = appkey;
 	config.callbacks = &spotify_callbacks;
 
 	config.user_agent = application_name;
+
+	sp_session *session;
+	sp_error error;
 	error = sp_session_create(&config, &session);
 	if ( error != SP_ERROR_OK ) {
 		g_warning("failed to create session: %s",
 				sp_error_message(error));
 		return NULL;
 	}
+
+	g_free(appkey);
+	g_free(cache_location);
+	g_free(settings_location);
 	g_message("spotify session created!");
 	if(spotify_login(session, username, password, blob) != 0)
 		g_warning("login failed!");

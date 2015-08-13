@@ -228,6 +228,7 @@ int main(int argc, char *argv[])
 
 	struct fuse_operations fuse_ops = spfs_get_fuse_operations();
 	retval = fuse_main(args.argc, args.argv, &fuse_ops, &conf);
+	fuse_opt_free_args(&args);
 	if (retval != 0) {
 		fprintf(stderr, "Error initialising spotifile\n");
 	}
