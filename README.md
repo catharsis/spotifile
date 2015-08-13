@@ -106,7 +106,7 @@ Each of these directories in turn, contain a collection of symlinks - one for ea
     lrwxrwxrwx 0 alofgren root 56 Jun 20  2011 Blaze -> ../../browse/tracks/spotify:track:247py70aNT1jbDmnZGj3wL/
     # ... snip ...
 
-The targets of these links are created *lazily*, meaning that they are materialized only as something referring to them is inspected by the user (such as the symlinks above). As you might've guessed (or already observed, if you've strayed from the beaten path of this guide), this means that in a newly started **spotifile** instance, the `browse` directory only contains three empty directories:
+The targets of these links are created *lazily*, meaning that they are materialized only as something referring to them is inspected by the user, such as the symlinks above. As you might've already guessed - or observed, if you've strayed from the beaten path of this guide - this means that in a newly started **spotifile** instance, the `browse` directory only contains three empty directories:
 
     $ tree browse
     browse
