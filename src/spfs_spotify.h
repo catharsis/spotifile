@@ -26,10 +26,10 @@ size_t spotify_get_audio(char *buf, size_t size);
 bool spotify_is_playing(void);
 
 /*artists*/
-const gchar * spotify_artist_name(sp_artist * artist);
+gchar * spotify_artist_name(sp_artist * artist);
 
 /*albums*/
-const gchar * spotify_album_name(sp_album * album);
+gchar * spotify_album_name(sp_album * album);
 
 /*artist browse*/
 sp_artistbrowse *spotify_artistbrowse_create(sp_session *session, sp_artist *artist);
@@ -37,7 +37,7 @@ sp_artist * spotify_artistbrowse_artist(sp_artistbrowse *artistbrowse);
 char * spotify_artistbrowse_biography(sp_artistbrowse *artistbrowse);
 
 /*tracks*/
-const gchar * spotify_track_name(sp_track *track);
+gchar * spotify_track_name(sp_track *track);
 int spotify_track_duration(sp_track *track);
 int spotify_track_index(sp_track *track);
 int spotify_track_disc(sp_track *track);
@@ -51,10 +51,10 @@ sp_artist *spotify_track_artist(sp_track *track, int index);
 
 /* images */
 sp_image * spotify_image_create(sp_session *session, const byte *id);
-const void * spotify_image_data(sp_image *image, size_t *size);
+void * spotify_image_data(sp_image *image, size_t *size);
 
 /*playlists*/
-const gchar * spotify_playlist_name(sp_playlist *playlist);
+gchar * spotify_playlist_name(sp_playlist *playlist);
 int spotify_playlist_num_tracks(sp_playlist *playlist);
 int spotify_playlist_track_create_time(sp_playlist *playlist, int index);
 sp_track *spotify_playlist_track(sp_playlist *playlist, int index);

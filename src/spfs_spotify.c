@@ -45,41 +45,45 @@ void * spotify_thread_start(void *arg);
 		return true; \
 	}
 
-#define SPFS_SPOTIFY_SESSION_API_FUNC(_Ret, _Type, _Field) \
-	_Ret spotify_ ## _Type ## _ ## _Field (sp_session *session, sp_ ## _Type * _Type) { \
+#define SPFS_SPOTIFY_API_PRELUDE(_Ret, _Type, _Field) \
 	_Ret _Field; \
 	g_mutex_lock(&g_spotify_api_mutex); \
 	if (!wait_on_ ## _Type( _Type )) { \
 		g_warning(STRINGIFY(_Type) " never loaded, unreliable " STRINGIFY(_Field) " information"); \
-	} \
-	_Field = sp_ ## _Type ## _ ## _Field (session, _Type); \
-	g_mutex_unlock(&g_spotify_api_mutex); \
-	return _Field; \
+	}
+
+#define SPFS_SPOTIFY_SESSION_API_FUNC(_Ret, _Type, _Field) \
+	_Ret spotify_ ## _Type ## _ ## _Field (sp_session *session, sp_ ## _Type * _Type) { \
+		SPFS_SPOTIFY_API_PRELUDE(_Ret, _Type, _Field) \
+		_Field = sp_ ## _Type ## _ ## _Field (session, _Type); \
+		g_mutex_unlock(&g_spotify_api_mutex); \
+		return _Field; \
 	}
 
 #define SPFS_SPOTIFY_API_FUNC2(_Ret, _Type, _Field, _Type2, _Field2) \
 	_Ret spotify_ ## _Type ## _ ## _Field (sp_ ## _Type * _Type, _Type2 _Field2) { \
-	_Ret _Field; \
-	g_mutex_lock(&g_spotify_api_mutex); \
-	if (!wait_on_ ## _Type( _Type )) { \
-		g_warning(STRINGIFY(_Type) " never loaded, unreliable " STRINGIFY(_Field) " information"); \
-	} \
-	_Field = sp_ ## _Type ## _ ## _Field (_Type, _Field2); \
-	g_mutex_unlock(&g_spotify_api_mutex); \
-	return _Field; \
-}
+		SPFS_SPOTIFY_API_PRELUDE(_Ret, _Type, _Field) \
+		_Field = sp_ ## _Type ## _ ## _Field (_Type, _Field2); \
+		g_mutex_unlock(&g_spotify_api_mutex); \
+		return _Field; \
+	}
+
+#define SPFS_SPOTIFY_API_FUNC_COPY(_Ret, _Type, _Field, _Copy) \
+	_Ret spotify_ ## _Type ## _ ## _Field (sp_ ## _Type * _Type) { \
+		SPFS_SPOTIFY_API_PRELUDE(_Ret, _Type, _Field) \
+		_Field = _Copy(sp_ ## _Type ## _ ## _Field (_Type)); \
+		g_mutex_unlock(&g_spotify_api_mutex); \
+		return _Field; \
+	}
 
 #define SPFS_SPOTIFY_API_FUNC(_Ret, _Type, _Field) \
 	_Ret spotify_ ## _Type ## _ ## _Field (sp_ ## _Type * _Type) { \
-	_Ret _Field; \
-	g_mutex_lock(&g_spotify_api_mutex); \
-	if (!wait_on_ ## _Type( _Type )) { \
-		g_warning(STRINGIFY(_Type) " never loaded, unreliable " STRINGIFY(_Field) " information"); \
-	} \
-	_Field = sp_ ## _Type ## _ ## _Field (_Type); \
-	g_mutex_unlock(&g_spotify_api_mutex); \
-	return _Field; \
-}
+		SPFS_SPOTIFY_API_PRELUDE(_Ret, _Type, _Field) \
+		_Field = sp_ ## _Type ## _ ## _Field (_Type); \
+		g_mutex_unlock(&g_spotify_api_mutex); \
+		return _Field; \
+	}
+
 
 
 sp_error sp_playlistcontainer_error(sp_playlistcontainer *unused) {
@@ -97,6 +101,7 @@ sp_error sp_playlist_error(sp_playlist *unused) {
 sp_error sp_album_error(sp_album *unused) {
 	return SP_ERROR_OK;
 }
+
 SPFS_WAIT_ON_FUNC(image)
 SPFS_WAIT_ON_FUNC(artist)
 SPFS_WAIT_ON_FUNC(album)
@@ -368,6 +373,7 @@ GArray *spotify_get_artistbrowse_portraits(sp_artistbrowse *ab) {
 	g_mutex_unlock(&g_spotify_api_mutex);
 	return portraits;
 }
+
 GArray *spotify_get_playlists(sp_session *session) {
 	g_mutex_lock(&g_spotify_api_mutex);
 	sp_playlistcontainer *plc = sp_session_playlistcontainer(session);
@@ -537,25 +543,32 @@ sp_artistbrowse * spotify_artistbrowse_create(sp_session * session, sp_artist * 
 }
 
 /* Image "getters"*/
-SPFS_SPOTIFY_API_FUNC2(const void *, image, data, size_t *, size)
+void * spotify_image_data(sp_image * image, size_t * size) {
+	SPFS_SPOTIFY_API_PRELUDE(const void *, image, data);
+	data = sp_image_data(image, size);
+	void *data_copy = g_malloc(*size);
+	memcpy(data_copy, data, *size);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return data_copy;
+}
 
 /* Playlist "getters"*/
-SPFS_SPOTIFY_API_FUNC(const gchar *, playlist, name)
+SPFS_SPOTIFY_API_FUNC_COPY(gchar *, playlist, name, g_strdup)
 SPFS_SPOTIFY_API_FUNC(int, playlist, num_tracks)
 SPFS_SPOTIFY_API_FUNC2(sp_track *, playlist, track, int, index)
 SPFS_SPOTIFY_API_FUNC2(int, playlist, track_create_time, int, index)
 
 /* Artist "getters"*/
-SPFS_SPOTIFY_API_FUNC(const gchar *, artist, name)
+SPFS_SPOTIFY_API_FUNC_COPY(gchar *, artist, name, g_strdup)
 
 /* Album "getters"*/
-SPFS_SPOTIFY_API_FUNC(const gchar *, album, name)
+SPFS_SPOTIFY_API_FUNC_COPY(gchar *, album, name, g_strdup)
 
 /* Artist browse "getters" */
 SPFS_SPOTIFY_API_FUNC(sp_artist *, artistbrowse, artist);
 
 /* Track "getters"*/
-SPFS_SPOTIFY_API_FUNC(const gchar *, track, name)
+SPFS_SPOTIFY_API_FUNC_COPY(gchar *, track, name, g_strdup)
 SPFS_SPOTIFY_API_FUNC(int, track, duration)
 SPFS_SPOTIFY_API_FUNC(int, track, disc)
 SPFS_SPOTIFY_API_FUNC(int, track, index)
