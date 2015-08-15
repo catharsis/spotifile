@@ -35,9 +35,11 @@ static int offlinestatus_read(const char *path, char *buf, size_t size, off_t of
 
 static int name_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	spfs_entity *e = (spfs_entity *)fi->fh;
-	gchar *str = g_strdup_printf("%s\n", (spotify_track_name(e->parent->auxdata)));
+	gchar *track_name = spotify_track_name(e->parent->auxdata);
+	gchar *str = g_strdup_printf("%s\n", track_name);
 	READ_OFFSET(str, buf, size, offset);
 	g_free(str);
+	g_free(track_name);
 	return size;
 }
 
@@ -171,7 +173,7 @@ int artists_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
 	int num_artists = spotify_track_num_artists(track);
 	for (int i = 0; i < num_artists; ++i) {
 		sp_artist *artist = spotify_track_artist(track, i);
-		const gchar *artistname = spotify_artist_name(artist);
+		gchar *artistname = spotify_artist_name(artist);
 		spfs_entity *artist_browse_dir = create_artist_browse_dir(artist);
 		/*
 		 * FIXME: Deal with duplicates (artists with the same name).
@@ -183,6 +185,8 @@ int artists_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
 			spfs_entity_link_set_target(artist_link, rpath);
 			g_free(rpath);
 		}
+
+		g_free(artistname);
 	}
 	return 0;
 }

@@ -16,8 +16,9 @@ static int portrait_read(const char *path, char *buf, size_t size, off_t offset,
 	spfs_entity *e = (spfs_entity *)fi->fh;
 	sp_image *image = e->auxdata;
 	size_t image_size;
-	const void * image_data = spotify_image_data(image, &image_size);
+	void * image_data = spotify_image_data(image, &image_size);
 	READ_SIZED_OFFSET((char *)image_data, image_size, buf, size, offset);
+	g_free(image_data);
 	return size;
 }
 
@@ -56,7 +57,7 @@ static int albums_readdir(const char *path, void *buf, fuse_fill_dir_t filler, o
 		sp_album *album = g_array_index(albums, sp_album *, i);
 
 		spfs_entity *album_browse_dir = create_album_browse_dir(album);
-		const gchar *album_name = spotify_album_name(album);
+		gchar *album_name = spotify_album_name(album);
 		/* FIXME: Deal with duplicates (re-releases, region availability.) properly
 		 * Probably by presenting the album that has the most tracks available
 		 * to the user as suggested here: http://stackoverflow.com/a/11994581
@@ -71,6 +72,7 @@ static int albums_readdir(const char *path, void *buf, fuse_fill_dir_t filler, o
 			spfs_entity_link_set_target(album_link, rpath);
 			g_free(rpath);
 		}
+		g_free(album_name);
 	}
 	g_array_free(albums, false);
 	return 0;

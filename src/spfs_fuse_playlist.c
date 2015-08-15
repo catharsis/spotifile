@@ -12,7 +12,7 @@ static int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t fil
 	GArray *tracks = spotify_get_playlist_tracks(pl);
 	for (guint i = 0; i < tracks->len; ++i) {
 		sp_track *track = g_array_index(tracks, sp_track *, i);
-		const gchar *trackname = spotify_track_name(track);
+		gchar *trackname = spotify_track_name(track);
 		spfs_entity *track_browse_dir = create_track_browse_dir(track);
 		if (!spfs_entity_dir_has_child(e->e.dir, trackname)) {
 			spfs_entity *track_link = spfs_entity_link_create(trackname, NULL);
@@ -21,8 +21,9 @@ static int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t fil
 			gchar *rpath = relpath(e, track_browse_dir);
 			spfs_entity_link_set_target(track_link, rpath);
 			g_free(rpath);
-
 		}
+
+		g_free(trackname);
 	}
 	g_array_free(tracks, false);
 	return 0;
@@ -37,13 +38,15 @@ int playlists_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, o
 	GArray *playlists = spotify_get_playlists(session);
 	for (guint i = 0; i < playlists->len; ++i) {
 		sp_playlist * pl = g_array_index(playlists, sp_playlist *, i);
-		const gchar *name = spotify_playlist_name(pl);
+		gchar *name = spotify_playlist_name(pl);
 		if (!spfs_entity_dir_has_child(playlists_dir->e.dir, name)) {
 			spfs_entity * pld = spfs_entity_dir_create(name,
 					playlist_dir_readdir);
 			pld->auxdata = pl;
 			spfs_entity_dir_add_child(playlists_dir, pld);
 		}
+
+		g_free(name);
 	}
 	g_array_free(playlists, false);
 	return 0;
