@@ -193,7 +193,12 @@ struct fuse_operations spfs_operations = {
 	.readdir = spfs_readdir,
 	.readlink = spfs_readlink,
 	.open = spfs_open,
-	.opendir = spfs_opendir
+	.opendir = spfs_opendir,
+
+	/* Don't bother calculating the path
+	 * on our account, we use handles */
+	.flag_nullpath_ok = 1,
+	.flag_nopath = 1,
 };
 
 struct fuse_operations spfs_get_fuse_operations() {
