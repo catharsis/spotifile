@@ -675,6 +675,7 @@ void * spotify_thread_start(void *arg) {
 		} while (event_timeout == 0);
 		g_mutex_lock(&g_spotify_notify_mutex);
 	}
+	g_mutex_unlock(&g_spotify_notify_mutex);
 	g_debug("spotify session processing thread: ended");
 	return (void *)NULL;
 }
