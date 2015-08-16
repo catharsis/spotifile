@@ -196,9 +196,16 @@ struct fuse_operations spfs_operations = {
 	.opendir = spfs_opendir,
 
 	/* Don't bother calculating the path
-	 * on our account, we use handles */
+	 * on our account, we use handles.
+	 *
+	 * Sorry about the #if'ing mess.
+	 */
+#if FUSE_MAJOR_VERSION > 2 || ( FUSE_MAJOR_VERSION == 2 && FUSE_MINOR_VERSION >= 8 )
 	.flag_nullpath_ok = 1,
+#endif  // >= FUSE 2.8
+#if FUSE_MAJOR_VERSION > 2 || ( FUSE_MAJOR_VERSION == 2 && FUSE_MINOR_VERSION >= 9 )
 	.flag_nopath = 1,
+#endif  // >= FUSE 2.9
 };
 
 struct fuse_operations spfs_get_fuse_operations() {
