@@ -60,8 +60,8 @@ int spfs_open(const char *path, struct fuse_file_info *fi)
 	g_return_val_if_fail(e != NULL, -ENOENT);
 	fi->fh = (uint64_t)e;
 	int ret = 0;
-	if (e->e.file->open != NULL) {
-		ret = e->e.file->open(path, fi);
+	if (e->e.file->ops->open != NULL) {
+		ret = e->e.file->ops->open(path, fi);
 	}
 
 	if (G_LIKELY(!ret)) {
@@ -78,9 +78,9 @@ int spfs_open(const char *path, struct fuse_file_info *fi)
 int spfs_release(const char *path, struct fuse_file_info *fi)
 {
 	spfs_entity *e = (spfs_entity *) fi->fh;
-	if (e->e.file->release != NULL)
+	if (e->e.file->ops->release != NULL)
 		/* "The return value of release is ignored." */
-		e->e.file->release(path, fi);
+		e->e.file->ops->release(path, fi);
 	e->refs--;
 	return 0;
 }
@@ -100,11 +100,11 @@ int spfs_read(const char *path, char *buf, size_t size, off_t offset,
 	spfs_entity *e = (spfs_entity *) fi->fh;
 	g_return_val_if_fail(e->type == SPFS_FILE, -EISDIR);
 
-	if (e->e.file->read == NULL) {
+	if (e->e.file->ops->read == NULL) {
 		g_return_val_if_reached(-EINVAL);
 	}
 
-	return e->e.file->read(path, buf, size, offset, fi);
+	return e->e.file->ops->read(path, buf, size, offset, fi);
 }
 
 int spfs_readlink(const char *path, char *buf, size_t len) {
@@ -131,8 +131,8 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	filler(buf, "..", NULL, 0);
 	spfs_dir *dir = e->e.dir;
 	g_debug("filling existing dir %s ", path);
-	if (dir->readdir != NULL) {
-		ret = dir->readdir(path, buf, filler, offset, fi);
+	if (dir->ops->readdir != NULL) {
+		ret = dir->ops->readdir(path, buf, filler, offset, fi);
 	}
 	fill_dir_children(e->e.dir, buf, filler);
 	return ret;
@@ -150,8 +150,8 @@ void *spfs_init(struct fuse_conn_info *conn)
 	spfs_entity_dir_add_child(root,
 			spfs_entity_file_create(
 				"connection",
-				connection_read
-			));
+				&(struct spfs_file_ops){.read = connection_read}
+				));
 
 	spfs_entity *browsedir = spfs_entity_dir_create(
 				"browse",
@@ -181,7 +181,7 @@ void *spfs_init(struct fuse_conn_info *conn)
 	spfs_entity_dir_add_child(root,
 			spfs_entity_dir_create(
 				"playlists",
-				playlists_dir_readdir
+				&(struct spfs_dir_ops){.readdir = playlists_dir_readdir}
 				)
 			);
 

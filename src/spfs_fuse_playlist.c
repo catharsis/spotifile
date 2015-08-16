@@ -41,7 +41,7 @@ int playlists_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, o
 		gchar *name = spotify_playlist_name(pl);
 		if (!spfs_entity_dir_has_child(playlists_dir->e.dir, name)) {
 			spfs_entity * pld = spfs_entity_dir_create(name,
-					playlist_dir_readdir);
+					&(struct spfs_dir_ops) {.readdir = playlist_dir_readdir});
 			pld->auxdata = pl;
 			spfs_entity_dir_add_child(playlists_dir, pld);
 		}

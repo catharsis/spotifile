@@ -220,39 +220,65 @@ spfs_entity *create_track_browse_dir(sp_track *track) {
 	track_dir->auxdata = track;
 
 	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_file_create("name", name_read));
+			spfs_entity_file_create("name",
+				&(struct spfs_file_ops) {.read = name_read}
+				)
+			);
 
-	spfs_entity *track_file = spfs_entity_file_create("track.wav", wav_read);
-	spfs_entity_file_set_open(track_file->e.file, wav_open);
-	spfs_entity_file_set_release(track_file->e.file, wav_release);
-	spfs_entity_dir_add_child(track_dir, track_file);
+	spfs_entity_dir_add_child(track_dir, spfs_entity_file_create("track.wav",
+				&(struct spfs_file_ops){
+				.open = wav_open,
+				.read = wav_read,
+				.release = wav_release
+				})
+			);
 
-	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_file_create("duration", duration_read));
-
-	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_file_create("popularity", popularity_read));
-
-	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_file_create("index", index_read));
 
 	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_file_create("disc", disc_read));
+			spfs_entity_file_create("duration",
+				&(struct spfs_file_ops) {.read = duration_read})
+			);
 
 	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_file_create("starred", is_starred_read));
+			spfs_entity_file_create("popularity",
+				&(struct spfs_file_ops) {.read = popularity_read})
+			);
 
 	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_file_create("local", is_local_read));
+			spfs_entity_file_create("index",
+				&(struct spfs_file_ops) {.read = index_read})
+			);
 
 	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_file_create("autolinked", is_autolinked_read));
+			spfs_entity_file_create("disc",
+				&(struct spfs_file_ops) {.read = disc_read})
+			);
 
 	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_file_create("offlinestatus", offlinestatus_read));
+			spfs_entity_file_create("starred",
+				&(struct spfs_file_ops) {.read = is_starred_read})
+			);
 
 	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_dir_create("artists", artists_readdir));
+			spfs_entity_file_create("local",
+				&(struct spfs_file_ops) {.read = is_local_read})
+			);
+
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_file_create("autolinked",
+				&(struct spfs_file_ops) {.read = is_autolinked_read})
+			);
+
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_file_create("offlinestatus",
+				&(struct spfs_file_ops) {.read = offlinestatus_read})
+			);
+
+	spfs_entity_dir_add_child(track_dir,
+			spfs_entity_dir_create("artists",
+				&(struct spfs_dir_ops) {.readdir = artists_readdir})
+			);
+
 	spfs_entity_dir_add_child(track_browse_dir, track_dir);
 	return track_dir;
 }

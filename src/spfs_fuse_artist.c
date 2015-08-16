@@ -33,7 +33,9 @@ static int portraits_readdir(const char *path, void *buf, fuse_fill_dir_t filler
 		gchar *portrait_name = g_strdup_printf("%d.jpg", i+1);
 
 		if (!spfs_entity_dir_has_child(e->e.dir, portrait_name)) {
-			spfs_entity *portrait_file = spfs_entity_file_create(portrait_name, portrait_read);
+			spfs_entity *portrait_file = spfs_entity_file_create(portrait_name,
+					&(struct spfs_file_ops){.read = portrait_read}
+					);
 			portrait_file->auxdata = spotify_image_create(
 					SPFS_SP_SESSION,
 					g_array_index(portraits, const byte *, i)
@@ -101,16 +103,24 @@ spfs_entity *create_artist_browse_dir(sp_artist *artist) {
 	artist_dir->auxdata = spotify_artistbrowse_create(SPFS_SP_SESSION, artist);
 
 	spfs_entity_dir_add_child(artist_dir,
-			spfs_entity_file_create("name", name_read));
+			spfs_entity_file_create("name",
+				&(struct spfs_file_ops){.read = name_read})
+			);
 
 	spfs_entity_dir_add_child(artist_dir,
-			spfs_entity_file_create("biography", biography_read));
+			spfs_entity_file_create("biography",
+				&(struct spfs_file_ops){.read = biography_read})
+			);
 
 	spfs_entity_dir_add_child(artist_dir,
-			spfs_entity_dir_create("albums", albums_readdir));
+			spfs_entity_dir_create("albums",
+				&(struct spfs_dir_ops){.readdir = albums_readdir})
+			);
 
 	spfs_entity_dir_add_child(artist_dir,
-			spfs_entity_dir_create("portraits", portraits_readdir));
+			spfs_entity_dir_create("portraits",
+				&(struct spfs_dir_ops){.readdir = portraits_readdir})
+			);
 
 	spfs_entity_dir_add_child(artist_browse_dir, artist_dir);
 	return artist_dir;

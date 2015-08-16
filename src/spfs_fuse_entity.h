@@ -21,22 +21,34 @@ typedef enum SpfsEntityType {
 	SPFS_LINK = S_IFLNK,
 } SpfsEntityType;
 
-typedef struct spfs_file {
+struct spfs_file_ops {
 	SpfsReadFunc read;
 	SpfsOpenFunc open;
 	SpfsReleaseFunc release;
+};
+
+struct spfs_dir_ops {
+	SpfsReaddirFunc readdir;
+};
+
+struct spfs_link_ops {
+	SpfsReadlinkFunc readlink;
+};
+
+typedef struct spfs_file {
+	struct spfs_file_ops *ops;
 	size_t size;
 	void *data;
 } spfs_file;
 
 typedef struct spfs_dir {
+	struct spfs_dir_ops *ops;
 	GHashTable *children;
-	SpfsReaddirFunc readdir;
 } spfs_dir;
 
 typedef struct spfs_link {
+	struct spfs_link_ops *ops;
 	gchar *target;
-	SpfsReadlinkFunc readlink;
 } spfs_link;
 
 
@@ -63,18 +75,16 @@ unsigned int spfs_entity_get_direct_io(spfs_entity *e);
 void spfs_entity_stat(spfs_entity *e, struct stat *statbuf);
 void spfs_entity_destroy(spfs_entity *e);
 
-spfs_entity *spfs_entity_root_create(SpfsReaddirFunc readdir_func);
+spfs_entity * spfs_entity_root_create(struct spfs_dir_ops *ops);
 
-spfs_entity * spfs_entity_file_create(const gchar *name, SpfsReadFunc read_func);
-void spfs_entity_file_set_open(spfs_file *f, SpfsOpenFunc open_func);
-void spfs_entity_file_set_release(spfs_file *f, SpfsReleaseFunc release_func);
+spfs_entity * spfs_entity_file_create(const gchar *name, struct spfs_file_ops *ops);
 
-spfs_entity * spfs_entity_dir_create(const gchar *name, SpfsReaddirFunc readdir_func);
+spfs_entity * spfs_entity_dir_create(const gchar *name, struct spfs_dir_ops *ops);
 void spfs_entity_dir_add_child(spfs_entity *parent, spfs_entity *child);
 spfs_entity * spfs_entity_dir_get_child(spfs_dir *dir, const char *name);
 bool spfs_entity_dir_has_child(spfs_dir *dir, const char *name);
 
-spfs_entity *spfs_entity_link_create(const gchar *name, SpfsReadlinkFunc readlink_func);
+spfs_entity *spfs_entity_link_create(const gchar *name, struct spfs_link_ops *ops);
 void spfs_entity_link_set_target(spfs_entity *link, const gchar *target);
 
 #endif /* SPFS_FUSE_ENTITY_H */

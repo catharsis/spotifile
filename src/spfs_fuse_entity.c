@@ -175,17 +175,20 @@ static spfs_entity * spfs_entity_create(const gchar *name, SpfsEntityType type) 
 
 static void spfs_file_destroy(spfs_file *file) {
 	g_return_if_fail(file != NULL);
+	g_free(file->ops);
 	g_free(file);
 }
 
 static void spfs_link_destroy(spfs_link *link) {
 	g_return_if_fail(link != NULL);
+	g_free(link->ops);
 	g_free(link);
 }
 
 static void spfs_dir_destroy(spfs_dir *dir) {
 	g_return_if_fail(dir != NULL);
 	g_hash_table_destroy(dir->children);
+	g_free(dir->ops);
 	g_free(dir);
 }
 
@@ -215,31 +218,30 @@ static gboolean spfs_entity_ht_key_compare(gconstpointer a, gconstpointer b) {
 	return (g_strcmp0(a, b) == 0);
 }
 
-spfs_entity * spfs_entity_file_create(const gchar *name, SpfsReadFunc read_func) {
+spfs_entity * spfs_entity_file_create(const gchar *name, struct spfs_file_ops *ops) {
 	g_return_val_if_fail(name != NULL, NULL);
 	spfs_entity *e = spfs_entity_create(name, SPFS_FILE);
 	e->e.file = g_new0(spfs_file, 1);
-	e->e.file->read = read_func;
-	e->e.file->open = NULL;
+	e->e.file->ops = g_new0(struct spfs_file_ops, 1);
+	if (ops != NULL) {
+		e->e.file->ops->read = ops->read;
+		e->e.file->ops->open = ops->open;
+		e->e.file->ops->release = ops->release;
+	}
+
 	g_debug("created file %s", name);
 	return e;
 }
 
-void spfs_entity_file_set_open(spfs_file *file, SpfsOpenFunc open_func) {
-	g_return_if_fail(file != NULL);
-	file->open = open_func;
-}
-
-void spfs_entity_file_set_release(spfs_file *file, SpfsReleaseFunc release_func) {
-	g_return_if_fail(file != NULL);
-	file->release = release_func;
-}
-
-spfs_entity * spfs_entity_dir_create(const gchar *name, SpfsReaddirFunc readdir_func) {
+spfs_entity * spfs_entity_dir_create(const gchar *name, struct spfs_dir_ops *ops) {
 	spfs_entity *e = spfs_entity_create(name, SPFS_DIR);
 	e->parent = NULL;
 	e->e.dir = g_new0(spfs_dir, 1);
-	e->e.dir->readdir = readdir_func;
+	e->e.dir->ops = g_new0(struct spfs_dir_ops, 1);
+	if (ops != NULL) {
+		e->e.dir->ops->readdir = ops->readdir;
+	}
+
 	e->e.dir->children = g_hash_table_new_full(g_str_hash,
 			spfs_entity_ht_key_compare,
 			NULL,
@@ -251,15 +253,18 @@ spfs_entity * spfs_entity_dir_create(const gchar *name, SpfsReaddirFunc readdir_
 	return e;
 }
 
-spfs_entity *spfs_entity_root_create(SpfsReaddirFunc readdir_func) {
-	return spfs_entity_dir_create(NULL, readdir_func);
+spfs_entity *spfs_entity_root_create(struct spfs_dir_ops * ops) {
+	return spfs_entity_dir_create(NULL, ops);
 }
 
-spfs_entity *spfs_entity_link_create(const gchar *name, SpfsReadlinkFunc readlink_func) {
+spfs_entity *spfs_entity_link_create(const gchar *name, struct spfs_link_ops *ops) {
 	g_return_val_if_fail(name != NULL, NULL);
 	spfs_entity *e = spfs_entity_create(name, SPFS_LINK);
-	e->e.link = g_new(spfs_link, 1);
-	e->e.link->readlink = readlink_func;
+	e->e.link = g_new0(spfs_link, 1);
+	e->e.link->ops = g_new0(struct spfs_link_ops, 1);
+	if (ops != NULL) {
+		e->e.link->ops->readlink = ops->readlink;
+	}
 	e->e.link->target = g_strdup(e->name);
 	g_debug("created link %s", name);
 	return e;

@@ -23,7 +23,8 @@ spfs_entity *create_album_browse_dir(sp_album *album) {
 	album_dir->auxdata = album;
 
 	spfs_entity_dir_add_child(album_dir,
-			spfs_entity_file_create("name", name_read));
+			spfs_entity_file_create("name",
+				&(struct spfs_file_ops) {.read = name_read}));
 
 	spfs_entity_dir_add_child(album_browse_dir, album_dir);
 
