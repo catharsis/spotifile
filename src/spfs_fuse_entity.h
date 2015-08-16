@@ -6,6 +6,8 @@
 #include <fuse.h>
 #include <stdbool.h>
 typedef int (*SpfsReadFunc)(const char *path, char *buff, size_t sz, off_t offset, struct fuse_file_info *fi);
+typedef int (*SpfsOpenFunc)(const char *path, struct fuse_file_info *fi);
+typedef int (*SpfsReleaseFunc)(const char *path, struct fuse_file_info *fi);
 
 typedef int (*SpfsReaddirFunc)(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
 
@@ -21,6 +23,8 @@ typedef enum SpfsEntityType {
 
 typedef struct spfs_file {
 	SpfsReadFunc read;
+	SpfsOpenFunc open;
+	SpfsReleaseFunc release;
 	size_t size;
 	void *data;
 } spfs_file;
@@ -41,6 +45,7 @@ typedef struct spfs_entity {
 	struct spfs_entity *parent;
 	void *auxdata;
 	SpfsEntityType type;
+	unsigned int refs;
 	time_t ctime;
 	time_t atime;
 	time_t mtime;
@@ -61,6 +66,9 @@ void spfs_entity_destroy(spfs_entity *e);
 spfs_entity *spfs_entity_root_create(SpfsReaddirFunc readdir_func);
 
 spfs_entity * spfs_entity_file_create(const gchar *name, SpfsReadFunc read_func);
+void spfs_entity_file_set_open(spfs_file *f, SpfsOpenFunc open_func);
+void spfs_entity_file_set_release(spfs_file *f, SpfsReleaseFunc release_func);
+
 spfs_entity * spfs_entity_dir_create(const gchar *name, SpfsReaddirFunc readdir_func);
 void spfs_entity_dir_add_child(spfs_entity *parent, spfs_entity *child);
 spfs_entity * spfs_entity_dir_get_child(spfs_dir *dir, const char *name);

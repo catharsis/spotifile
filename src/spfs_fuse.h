@@ -23,6 +23,7 @@ struct fuse_operations spfs_get_fuse_operations();
 struct spfs_data {
 	sp_session *session;
 	spfs_entity *root;
+	bool music_playing;
 };
 
 #define SPFS_DATA ((struct spfs_data *)(fuse_get_context()->private_data))

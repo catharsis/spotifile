@@ -114,6 +114,20 @@ static void fill_wav_header(struct wav_header *h, int channels, int rate, int du
 	h->data_size = h->size - 44;
 }
 
+static int wav_open(const char *path, struct fuse_file_info *fi) {
+	if ((SPFS_DATA)->music_playing)
+		return -EBUSY;
+	(SPFS_DATA)->music_playing = true;
+	return 0;
+}
+
+static int wav_release(const char *path, struct fuse_file_info *fi) {
+	if (G_UNLIKELY(!(SPFS_DATA)->music_playing))
+		g_warn_if_reached();
+	(SPFS_DATA)->music_playing = false;
+	return 0;
+}
+
 static int wav_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	static off_t expoff = 0;
 	spfs_entity *e = (spfs_entity *)fi->fh;
@@ -208,8 +222,10 @@ spfs_entity *create_track_browse_dir(sp_track *track) {
 	spfs_entity_dir_add_child(track_dir,
 			spfs_entity_file_create("name", name_read));
 
-	spfs_entity_dir_add_child(track_dir,
-			spfs_entity_file_create("track.wav", wav_read));
+	spfs_entity *track_file = spfs_entity_file_create("track.wav", wav_read);
+	spfs_entity_file_set_open(track_file->e.file, wav_open);
+	spfs_entity_file_set_release(track_file->e.file, wav_release);
+	spfs_entity_dir_add_child(track_dir, track_file);
 
 	spfs_entity_dir_add_child(track_dir,
 			spfs_entity_file_create("duration", duration_read));

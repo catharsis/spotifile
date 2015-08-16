@@ -165,6 +165,7 @@ static spfs_entity * spfs_entity_create(const gchar *name, SpfsEntityType type) 
 		e->name = spfs_sanitize_name(name);
 	}
 	e->auxdata = NULL;
+	e->refs = 0;
 	time_t t = time(NULL);
 	e->atime = t;
 	e->ctime = t;
@@ -219,8 +220,19 @@ spfs_entity * spfs_entity_file_create(const gchar *name, SpfsReadFunc read_func)
 	spfs_entity *e = spfs_entity_create(name, SPFS_FILE);
 	e->e.file = g_new0(spfs_file, 1);
 	e->e.file->read = read_func;
+	e->e.file->open = NULL;
 	g_debug("created file %s", name);
 	return e;
+}
+
+void spfs_entity_file_set_open(spfs_file *file, SpfsOpenFunc open_func) {
+	g_return_if_fail(file != NULL);
+	file->open = open_func;
+}
+
+void spfs_entity_file_set_release(spfs_file *file, SpfsReleaseFunc release_func) {
+	g_return_if_fail(file != NULL);
+	file->release = release_func;
 }
 
 spfs_entity * spfs_entity_dir_create(const gchar *name, SpfsReaddirFunc readdir_func) {

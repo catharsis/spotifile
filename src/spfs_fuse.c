@@ -58,10 +58,31 @@ int spfs_open(const char *path, struct fuse_file_info *fi)
 {
 	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
 	g_return_val_if_fail(e != NULL, -ENOENT);
-	fi->direct_io = spfs_entity_get_direct_io(e);
 	fi->fh = (uint64_t)e;
-	return 0;
+	int ret = 0;
+	if (e->e.file->open != NULL) {
+		ret = e->e.file->open(path, fi);
+	}
 
+	if (G_LIKELY(!ret)) {
+		e->refs++;
+		fi->direct_io = spfs_entity_get_direct_io(e);
+	}
+	else {
+		fi->fh = 0;
+	}
+	return ret;
+
+}
+
+int spfs_release(const char *path, struct fuse_file_info *fi)
+{
+	spfs_entity *e = (spfs_entity *) fi->fh;
+	if (e->e.file->release != NULL)
+		/* "The return value of release is ignored." */
+		e->e.file->release(path, fi);
+	e->refs--;
+	return 0;
 }
 
 int spfs_opendir(const char *path, struct fuse_file_info *fi)
@@ -193,6 +214,7 @@ struct fuse_operations spfs_operations = {
 	.readdir = spfs_readdir,
 	.readlink = spfs_readlink,
 	.open = spfs_open,
+	.release = spfs_release,
 	.opendir = spfs_opendir,
 
 	/* Don't bother calculating the path
