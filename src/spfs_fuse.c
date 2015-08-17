@@ -8,7 +8,6 @@
 #include <stdbool.h>
 #include <libgen.h>
 #include <glib.h>
-extern time_t g_logged_in_at; /*FIXME: get rid of this */
 
 static void fill_dir_children(spfs_dir *dir, void *buf, fuse_fill_dir_t filler) {
 	g_return_if_fail(dir != NULL);
