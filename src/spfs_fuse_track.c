@@ -137,7 +137,7 @@ static int wav_read(const char *path, char *buf, size_t size, off_t offset, stru
 	if (offset == 0) {
 		if (!spotify_play_track(session, e->parent->auxdata)) {
 			g_warning("Failed to play track!");
-			return 0;
+			return -EINVAL;
 		}
 	}
 
