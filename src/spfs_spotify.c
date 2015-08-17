@@ -565,6 +565,7 @@ SPFS_SPOTIFY_API_FUNC_COPY(gchar *, artist, name, g_strdup)
 
 /* Album "getters"*/
 SPFS_SPOTIFY_API_FUNC_COPY(gchar *, album, name, g_strdup)
+SPFS_SPOTIFY_API_FUNC2(const byte *, album, cover, sp_image_size, size);
 
 /* Artist browse "getters" */
 SPFS_SPOTIFY_API_FUNC(sp_artist *, artistbrowse, artist);

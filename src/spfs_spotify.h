@@ -30,6 +30,7 @@ gchar * spotify_artist_name(sp_artist * artist);
 
 /*albums*/
 gchar * spotify_album_name(sp_album * album);
+const byte * spotify_album_cover(sp_album * album, sp_image_size size);
 
 /*artist browse*/
 sp_artistbrowse *spotify_artistbrowse_create(sp_session *session, sp_artist *artist);
