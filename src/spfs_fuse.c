@@ -42,6 +42,27 @@ int spfs_getattr(const char *path, struct stat *statbuf)
 	return -ENOENT;
 }
 
+int spfs_access(const char *path, int mask)
+{
+	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
+	if (!e)
+		return -ENOENT;
+
+	if (mask == F_OK)
+		return 0;
+
+	if (mask & W_OK)
+		return -EACCES;
+
+	if (mask & X_OK && e->type == SPFS_FILE)
+		return -EACCES;
+
+	if (mask & R_OK || mask & X_OK)
+		return 0;
+
+	return -EINVAL;
+}
+
 int connection_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
@@ -204,17 +225,174 @@ void spfs_destroy(void *userdata)
 	g_message("%s destroyed", application_name);
 }
 
+#define W_UNIMPLEMENTED() g_warning("Unimplemented function %s called!", __func__);
+
+int spfs_mknod(const char *path, mode_t mode, dev_t dev)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_mkdir(const char *path, mode_t mode)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_unlink(const char *path)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_rmdir(const char *path)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_symlink(const char *path, const char *target)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_rename(const char *path, const char *newpath)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_hardlink(const char *path, const char *target)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_chmod(const char *path, mode_t mode)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_chown(const char *path, uid_t uid, gid_t gid)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_truncate(const char *path, off_t size)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+
+int spfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_statfs(const char *path, struct statvfs *stbuf)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_flush(const char *path, struct fuse_file_info *fi)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_fsync(const char *path, int isdatasync, struct fuse_file_info *fi)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_releasedir(const char *path, struct fuse_file_info *fi)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+
+int spfs_fsyncdir(const char *path, int isdatasync, struct fuse_file_info *fi)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_ftruncate(const char *path, off_t size, struct fuse_file_info *fi)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_lock(const char *path, struct fuse_file_info *fi, int cmd, struct flock *locks)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_utimens(const char *path, const struct timespec tv[2])
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_bmap(const char *path, size_t blocksize, uint64_t *idx)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_ioctl(const char *path, int cmd, void *arg, struct fuse_file_info *fi, unsigned int flags, void *data)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_poll(const char *path, struct fuse_file_info *fi, struct fuse_pollhandle *ph, unsigned *reventsp)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_write_buf(const char *path, struct fuse_bufvec *buf, off_t off, struct fuse_file_info *fi)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_read_buf(const char *path, struct fuse_bufvec **buf, size_t size, off_t off, struct fuse_file_info *fi)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
+int spfs_flock(const char *path, struct fuse_file_info *fi, int op)
+{
+	W_UNIMPLEMENTED();
+	return -EACCES;
+}
+
 
 struct fuse_operations spfs_operations = {
-	.init = spfs_init,
-	.destroy = spfs_destroy,
-	.getattr = spfs_getattr,
-	.read = spfs_read,
-	.readdir = spfs_readdir,
-	.readlink = spfs_readlink,
-	.open = spfs_open,
-	.release = spfs_release,
-	.opendir = spfs_opendir,
 
 	/* Don't bother calculating the path
 	 * on our account, we use handles.
@@ -227,6 +405,45 @@ struct fuse_operations spfs_operations = {
 #if FUSE_MAJOR_VERSION > 2 || ( FUSE_MAJOR_VERSION == 2 && FUSE_MINOR_VERSION >= 9 )
 	.flag_nopath = 1,
 #endif  // >= FUSE 2.9
+
+	.getattr = spfs_getattr,
+	.readlink = spfs_readlink,
+	.mknod = spfs_mknod,
+	.mkdir = spfs_mkdir,
+	.unlink = spfs_unlink,
+	.rmdir  = spfs_rmdir,
+	.symlink = spfs_symlink,
+	.rename = spfs_rename,
+	.link = spfs_hardlink,
+	.chmod = spfs_chmod,
+	.chown = spfs_chown,
+	.truncate = spfs_truncate,
+	.open = spfs_open,
+	.read = spfs_read,
+	.write = spfs_write,
+	.statfs = spfs_statfs,
+	.flush = spfs_flush,
+	.release = spfs_release,
+	.fsync = spfs_fsync,
+	//{set, get, list, remove}xattr
+	.opendir = spfs_opendir,
+	.readdir = spfs_readdir,
+	.releasedir = spfs_releasedir,
+	.fsyncdir = spfs_fsyncdir,
+	.init = spfs_init,
+	.destroy = spfs_destroy,
+	.access = spfs_access,
+	.create = spfs_create,
+	.ftruncate = spfs_ftruncate,
+	.fgetattr = spfs_fgetattr,
+	.lock = spfs_lock,
+	.utimens = spfs_utimens,
+	.bmap = spfs_bmap,
+	.ioctl = spfs_ioctl,
+	.poll = spfs_poll,
+	.write_buf = spfs_write_buf,
+	.read_buf = spfs_read_buf,
+	.flock = spfs_flock,
 };
 
 struct fuse_operations spfs_get_fuse_operations() {
