@@ -191,15 +191,17 @@ static void spotify_log_message(sp_session *session, const char *message) {
 }
 
 static void spotify_logged_out(sp_session *session) {
-	g_logged_in_at = (time_t) -1;
 	g_message("spotify: logged out");
 }
 
 static void spotify_logged_in(sp_session *session, sp_error error)
 {
 	if(SP_ERROR_OK == error) {
-		time(&g_logged_in_at);
-		g_message("spotify: logged in at %d", (int)g_logged_in_at);
+		GDateTime *login_time = g_date_time_new_now_local();
+		gchar *login_time_str = g_date_time_format(login_time, "%G %T %Z");
+		g_message("spotify: logged in at %s", login_time_str);
+		g_free(login_time_str);
+		g_date_time_unref(login_time);
 	} else {
 		g_message("spotify: logged in failed (%s)", sp_error_message(error));
 	}
