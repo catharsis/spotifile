@@ -373,18 +373,6 @@ int spfs_poll(const char *path, struct fuse_file_info *fi, struct fuse_pollhandl
 	return -EACCES;
 }
 
-int spfs_write_buf(const char *path, struct fuse_bufvec *buf, off_t off, struct fuse_file_info *fi)
-{
-	W_UNIMPLEMENTED();
-	return -EACCES;
-}
-
-int spfs_read_buf(const char *path, struct fuse_bufvec **buf, size_t size, off_t off, struct fuse_file_info *fi)
-{
-	W_UNIMPLEMENTED();
-	return -EACCES;
-}
-
 int spfs_flock(const char *path, struct fuse_file_info *fi, int op)
 {
 	W_UNIMPLEMENTED();
@@ -441,8 +429,6 @@ struct fuse_operations spfs_operations = {
 	.bmap = spfs_bmap,
 	.ioctl = spfs_ioctl,
 	.poll = spfs_poll,
-	.write_buf = spfs_write_buf,
-	.read_buf = spfs_read_buf,
 	.flock = spfs_flock,
 };
 
