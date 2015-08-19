@@ -138,8 +138,12 @@ void spfs_log_handler(const gchar *log_domain, GLogLevelFlags log_level, const g
 				);
 	}
 	else {
-		fprintf(f, "[%c] %s: %s\n", log_level_ind(log_level), application_name, message);
+		GDateTime *log_time = g_date_time_new_now_local();
+		gchar *log_time_str = g_date_time_format(log_time, "%F %T %Z");
+		fprintf(f, "[%c @ %s] %s: %s\n", log_level_ind(log_level), log_time_str, application_name, message);
 		fflush(f);
+		g_free(log_time_str);
+		g_date_time_unref(log_time);
 	}
 }
 
