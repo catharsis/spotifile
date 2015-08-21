@@ -373,13 +373,6 @@ int spfs_poll(const char *path, struct fuse_file_info *fi, struct fuse_pollhandl
 	return -EACCES;
 }
 
-int spfs_flock(const char *path, struct fuse_file_info *fi, int op)
-{
-	W_UNIMPLEMENTED();
-	return -EACCES;
-}
-
-
 struct fuse_operations spfs_operations = {
 
 	/* Don't bother calculating the path
@@ -429,7 +422,6 @@ struct fuse_operations spfs_operations = {
 	.bmap = spfs_bmap,
 	.ioctl = spfs_ioctl,
 	.poll = spfs_poll,
-	.flock = spfs_flock,
 };
 
 struct fuse_operations spfs_get_fuse_operations() {
