@@ -303,7 +303,7 @@ int spfs_statfs(const char *path, struct statvfs *stbuf)
 int spfs_flush(const char *path, struct fuse_file_info *fi)
 {
 	W_UNIMPLEMENTED();
-	return -EACCES;
+	return 0;
 }
 
 int spfs_fsync(const char *path, int isdatasync, struct fuse_file_info *fi)
@@ -338,12 +338,6 @@ int spfs_ftruncate(const char *path, off_t size, struct fuse_file_info *fi)
 }
 
 int spfs_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi)
-{
-	W_UNIMPLEMENTED();
-	return -EACCES;
-}
-
-int spfs_lock(const char *path, struct fuse_file_info *fi, int cmd, struct flock *locks)
 {
 	W_UNIMPLEMENTED();
 	return -EACCES;
@@ -417,7 +411,6 @@ struct fuse_operations spfs_operations = {
 	.create = spfs_create,
 	.ftruncate = spfs_ftruncate,
 	.fgetattr = spfs_fgetattr,
-	.lock = spfs_lock,
 	.utimens = spfs_utimens,
 	.bmap = spfs_bmap,
 	.ioctl = spfs_ioctl,
