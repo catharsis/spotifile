@@ -27,3 +27,9 @@ tests_spfs_fuse_test_LDADD = $(CHECK_LIBS) $(GLIB_LIBS)
 tests_spfs_fuse_utils_test_SOURCES = tests/spfs_fuse_utils_test.c \
 									 src/spfs_fuse_utils.c src/spfs_fuse_utils.h
 tests_spfs_fuse_utils_test_LDADD = $(CHECK_LIBS) $(GLIB_LIBS)
+
+BUILT_SOURCES = $(top_srcdir)/.version
+$(top_srcdir)/.version:
+	echo $(VERSION) > $@-t && mv $@-t $@
+dist-hook:
+	echo $(VERSION) > $(distdir)/.tarball-version
