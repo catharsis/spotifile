@@ -6,7 +6,7 @@
 static int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
 
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	sp_playlist *pl = (sp_playlist *)e->auxdata;
 
 	GArray *tracks = spotify_get_playlist_tracks(pl);
@@ -34,7 +34,7 @@ int playlists_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, o
 		struct fuse_file_info *fi) {
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
-	spfs_entity *playlists_dir = (spfs_entity *)fi->fh;
+	spfs_entity *playlists_dir = SPFS_FH2ENT(fi->fh);
 	GArray *playlists = spotify_get_playlists(session);
 	for (guint i = 0; i < playlists->len; ++i) {
 		sp_playlist * pl = g_array_index(playlists, sp_playlist *, i);

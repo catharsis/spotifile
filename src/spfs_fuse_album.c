@@ -1,7 +1,7 @@
 #include "spfs_fuse_album.h"
 #include "spfs_spotify.h"
 static int name_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	gchar *str = g_strdup_printf("%s\n", spotify_album_name(e->parent->auxdata));
 	READ_OFFSET(str, buf, size, offset);
 	g_free(str);
@@ -9,7 +9,7 @@ static int name_read(const char *path, char *buf, size_t size, off_t offset, str
 }
 
 static int cover_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	const byte *image_id = spotify_album_cover(e->parent->auxdata, SP_IMAGE_SIZE_NORMAL);
 
 	sp_image *image = spotify_image_create(SPFS_SP_SESSION, image_id);

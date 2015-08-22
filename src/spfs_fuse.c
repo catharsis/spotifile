@@ -78,7 +78,7 @@ int spfs_open(const char *path, struct fuse_file_info *fi)
 {
 	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
 	g_return_val_if_fail(e != NULL, -ENOENT);
-	fi->fh = (uint64_t)e;
+	fi->fh = SPFS_ENT2FH(e);
 	int ret = 0;
 	if (e->e.file->ops->open != NULL) {
 		ret = e->e.file->ops->open(path, fi);
@@ -97,7 +97,7 @@ int spfs_open(const char *path, struct fuse_file_info *fi)
 
 int spfs_release(const char *path, struct fuse_file_info *fi)
 {
-	spfs_entity *e = (spfs_entity *) fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	if (e->e.file->ops->release != NULL)
 		/* "The return value of release is ignored." */
 		e->e.file->ops->release(path, fi);
@@ -110,14 +110,14 @@ int spfs_opendir(const char *path, struct fuse_file_info *fi)
 	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
 	g_return_val_if_fail(e != NULL, -ENOENT);
 	g_return_val_if_fail(e->type == SPFS_DIR, -EINVAL);
-	fi->fh = (uint64_t)e;
+	fi->fh = SPFS_ENT2FH(e);
 	return 0;
 }
 
 int spfs_read(const char *path, char *buf, size_t size, off_t offset,
 		struct fuse_file_info *fi)
 {
-	spfs_entity *e = (spfs_entity *) fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	g_return_val_if_fail(e->type == SPFS_FILE, -EISDIR);
 
 	if (e->e.file->ops->read == NULL) {
@@ -143,7 +143,7 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	int ret = 0;
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	if (!e || e->type != SPFS_DIR) {
 		return -ENOENT;
 	}

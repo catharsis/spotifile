@@ -3,7 +3,7 @@
 #include "spfs_spotify.h"
 
 static int name_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	char *str = g_strdup_printf("%s\n", spotify_artist_name(
 				spotify_artistbrowse_artist(e->parent->auxdata)
 				));
@@ -13,7 +13,7 @@ static int name_read(const char *path, char *buf, size_t size, off_t offset, str
 }
 
 static int portrait_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	sp_image *image = e->auxdata;
 	size_t image_size;
 	void * image_data = spotify_image_data(image, &image_size);
@@ -24,7 +24,7 @@ static int portrait_read(const char *path, char *buf, size_t size, off_t offset,
 
 static int portraits_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	GArray *portraits = spotify_get_artistbrowse_portraits(e->parent->auxdata);
 	if (!portraits)
 		return 0;
@@ -50,7 +50,7 @@ static int portraits_readdir(const char *path, void *buf, fuse_fill_dir_t filler
 
 static int albums_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	GArray *albums = spotify_get_artistbrowse_albums(e->parent->auxdata);
 	if (!albums)
 		return 0;
@@ -81,7 +81,7 @@ static int albums_readdir(const char *path, void *buf, fuse_fill_dir_t filler, o
 }
 
 static int biography_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	char *str = spotify_artistbrowse_biography(e->parent->auxdata);
 	READ_OFFSET(str, buf, size, offset);
 	g_free(str);

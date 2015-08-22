@@ -28,6 +28,8 @@ struct spfs_data {
 
 #define SPFS_DATA ((struct spfs_data *)(fuse_get_context()->private_data))
 #define SPFS_SP_SESSION ((sp_session *)((SPFS_DATA)->session))
+#define SPFS_FH2ENT(_fh) ((spfs_entity *) (uintptr_t) (_fh))
+#define SPFS_ENT2FH(_ent) ((uintptr_t) (_ent))
 
 
 

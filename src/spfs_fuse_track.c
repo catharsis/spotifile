@@ -3,28 +3,28 @@
 #include "spfs_spotify.h"
 
 static int is_starred_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	char *str = spotify_track_is_starred(SPFS_SP_SESSION, e->parent->auxdata) ? "1\n" : "0\n";
 	READ_OFFSET(str, buf, size, offset);
 	return size;
 }
 
 static int is_local_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	char *str = spotify_track_is_local(SPFS_SP_SESSION, e->parent->auxdata) ? "1\n" : "0\n";
 	READ_OFFSET(str, buf, size, offset);
 	return size;
 }
 
 static int is_autolinked_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	char *str = spotify_track_is_autolinked(SPFS_SP_SESSION, e->parent->auxdata) ? "1\n" : "0\n";
 	READ_OFFSET(str, buf, size, offset);
 	return size;
 }
 
 static int offlinestatus_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	char *str = g_strdup_printf("%s\n", spotify_track_offline_status_str(
 			spotify_track_offline_get_status(e->parent->auxdata)
 			));
@@ -34,7 +34,7 @@ static int offlinestatus_read(const char *path, char *buf, size_t size, off_t of
 }
 
 static int name_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	gchar *track_name = spotify_track_name(e->parent->auxdata);
 	gchar *str = g_strdup_printf("%s\n", track_name);
 	READ_OFFSET(str, buf, size, offset);
@@ -44,7 +44,7 @@ static int name_read(const char *path, char *buf, size_t size, off_t offset, str
 }
 
 static int disc_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	gchar *str = g_strdup_printf("%d\n",
 			spotify_track_disc(e->parent->auxdata));
 	READ_OFFSET(str, buf, size, offset);
@@ -53,7 +53,7 @@ static int disc_read(const char *path, char *buf, size_t size, off_t offset, str
 }
 
 static int index_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	gchar *str = g_strdup_printf("%d\n",
 			spotify_track_index(e->parent->auxdata));
 	READ_OFFSET(str, buf, size, offset);
@@ -62,7 +62,7 @@ static int index_read(const char *path, char *buf, size_t size, off_t offset, st
 }
 
 static int popularity_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	gchar *str = g_strdup_printf("%d\n",
 			spotify_track_popularity(e->parent->auxdata));
 	READ_OFFSET(str, buf, size, offset);
@@ -71,7 +71,7 @@ static int popularity_read(const char *path, char *buf, size_t size, off_t offse
 }
 
 static int duration_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	gchar *str = g_strdup_printf("%d\n",
 			spotify_track_duration(e->parent->auxdata));
 	READ_OFFSET(str, buf, size, offset);
@@ -130,7 +130,7 @@ static int wav_release(const char *path, struct fuse_file_info *fi) {
 
 static int wav_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	static off_t expoff = 0;
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	sp_session *session = SPFS_SP_SESSION;
 	int channels, rate, duration;
 
@@ -182,7 +182,7 @@ static int wav_read(const char *path, char *buf, size_t size, off_t offset, stru
 
 int artists_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
-	spfs_entity *e = (spfs_entity *)fi->fh;
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	sp_track *track = e->parent->auxdata;
 	int num_artists = spotify_track_num_artists(track);
 	for (int i = 0; i < num_artists; ++i) {
