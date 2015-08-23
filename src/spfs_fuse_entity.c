@@ -132,6 +132,10 @@ void spfs_entity_dir_add_child(spfs_entity *parent, spfs_entity *child) {
 	g_return_if_fail(parent->type == S_IFDIR);
 	g_return_if_fail(strlen(child->name) > 0);
 
+	if (spfs_entity_dir_has_child(parent->e.dir, child->name)) {
+		g_warning("cowardly refusing to overwrite existing child %s in directory %s", child->name, parent->name);
+		return;
+	}
 	child->parent = parent;
 	g_hash_table_insert(parent->e.dir->children, child->name, child);
 	g_debug("added %s to dir %s", child->name, parent->name ? parent->name : "root");
