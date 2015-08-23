@@ -153,7 +153,12 @@ Looking inside of that directory, we see more information on the artist:
 
 And that's the whole tour for now! 
 
-Feel free to explore for yourself, and feel free to provide feedback, report issues, or send patches/PRs!
+## Contributing
+User interaction & engagement is thouroughly encouraged! **spotifile** is still in active development and your feedback is very likely to impact the future direction of the project.
+
+Please report issues, feature requests and general feedback in the GitHub issue tracker. Bug requests should preferrably include as detailed steps to reproduce as you can manage (for extra credit, try to find a minimal test case that reproduces the bug). Please also include the output from `spotifile -d <mountpoint>` when reporting bugs, as it makes tracking them down that much easier.
+
+Code contributions are of course very welcome, but I'd appreciate it if you'd go through the trouble of opening an issue or shoot me an e-mail before you start hacking so that we may discuss the change before any code is written. Needless to say, this doesn't necessarily apply to trivial fixes (like typo corrections) or obvious bug fixes (like segfaults). If you have a patch that you think would be neat to include, either open a pull request on GitHub, or send me a patch-mail directly.
 
 ## Oh dear, why?
 For fun, mostly. But also because I've been looking for a media playing solution that is both scriptable and ties into my otherwise somewhat minimalistic desktop environment nicely. I think this approach is not as crazy as it might initially sound for those purposes. It's worth a shot at least, yes?
