@@ -175,6 +175,7 @@ void *spfs_init(struct fuse_conn_info *conn)
 	struct spfs_data *data = g_new0(struct spfs_data, 1);
 	struct fuse_context *context = fuse_get_context();
 	struct spotifile_config *conf= (struct spotifile_config *) context->private_data;
+	data->playlist_track_format = g_strdup(conf->playlist_track_format);
 
 	spfs_entity *root = spfs_entity_root_create(NULL);
 

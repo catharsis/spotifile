@@ -25,6 +25,7 @@ struct spotifile_config {
 	char *spotify_username;
 	char *spotify_password;
 	char *config_file;
+	gchar *playlist_track_format;
 	int foreground;
 	int debug;
 };

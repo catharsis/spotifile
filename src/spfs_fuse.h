@@ -24,6 +24,7 @@ struct spfs_data {
 	sp_session *session;
 	spfs_entity *root;
 	bool music_playing;
+	gchar *playlist_track_format;
 };
 
 #define SPFS_DATA ((struct spfs_data *)(fuse_get_context()->private_data))

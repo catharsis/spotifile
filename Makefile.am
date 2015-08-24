@@ -16,6 +16,7 @@ spotifile_SOURCES = src/spfs_fuse.c src/spfs_fuse.h \
 					src/spfs_path.c src/spfs_path.h \
 					src/spfs_spotify.c src/spfs_spotify.h \
 					src/spfs_audio.c src/spfs_audio.h \
+					src/spfs_format.c src/spfs_format.h \
 					src/spotify-fs.c src/spotify-fs.h \
 					src/spfs_appkey.c src/spfs_appkey.h
 
