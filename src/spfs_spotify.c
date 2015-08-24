@@ -313,13 +313,14 @@ bool spotify_is_playing(void) {
 }
 
 // Returns track information for the currently playing track
+// On error, returns -1
 int spotify_get_track_info(int *channels, int *rate) {
 	spfs_audio *audio = NULL;
 	int duration = 0;
 	g_mutex_lock(&(g_playback->mutex));
 	if (!g_playback->playing) {
 		g_mutex_unlock(&g_playback->mutex);
-		return 0;
+		return -1;
 	}
 
 	while ((audio = g_queue_peek_head(g_playback->queue)) == NULL ) {
@@ -333,6 +334,8 @@ int spotify_get_track_info(int *channels, int *rate) {
 
 	if (wait_on_track(g_playback->playing))
 		duration = sp_track_duration(g_playback->playing);
+	else
+		duration = -1;
 
 	g_mutex_unlock(&(g_playback->mutex));
 	return duration;

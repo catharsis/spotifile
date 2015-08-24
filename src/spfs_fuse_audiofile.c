@@ -71,6 +71,11 @@ int wav_read(const char *path, char *buf, size_t size, off_t offset, struct fuse
 	if ((size_t) offset < sizeof(header)) {
 		memset(&header, 0, sizeof(header));
 		duration = spotify_get_track_info(&channels, &rate);
+		if (duration < 0) {
+			return 0;
+		}
+
+
 		fill_wav_header(&header, channels, rate, duration);
 
 		if ( offset + size > sizeof(header))
@@ -83,6 +88,10 @@ int wav_read(const char *path, char *buf, size_t size, off_t offset, struct fuse
 	if (expoff != offset) {
 		//seek
 		duration = spotify_get_track_info(&channels, &rate);
+		if (duration < 0) {
+			return 0;
+		}
+
 		size_t bytes_p_s = (channels * 16 * rate) / 8;
 
 		int ms_offset = (offset / bytes_p_s) * 1000;
