@@ -14,9 +14,10 @@ static int playlist_dir_readdir(const char *path, void *buf, fuse_fill_dir_t fil
 		sp_track *track = g_array_index(tracks, sp_track *, i);
 		gchar *trackname = spotify_track_name(track);
 		spfs_entity *track_browse_dir = create_track_browse_dir(track);
+		time_t track_create_time = spotify_playlist_track_create_time(pl, i);
 		if (!spfs_entity_dir_has_child(e->e.dir, trackname)) {
 			spfs_entity *track_link = spfs_entity_link_create(trackname, NULL);
-			track_link->mtime = spotify_playlist_track_create_time(pl, i);
+			track_link->mtime = track_create_time;
 			spfs_entity_dir_add_child(e, track_link);
 			gchar *rpath = relpath(e, track_browse_dir);
 			spfs_entity_link_set_target(track_link, rpath);
