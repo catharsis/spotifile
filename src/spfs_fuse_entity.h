@@ -29,6 +29,7 @@ struct spfs_file_ops {
 
 struct spfs_dir_ops {
 	SpfsReaddirFunc readdir;
+	SpfsReleaseFunc release;
 };
 
 struct spfs_link_ops {

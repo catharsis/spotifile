@@ -105,6 +105,17 @@ int spfs_release(const char *path, struct fuse_file_info *fi)
 	return 0;
 }
 
+int spfs_releasedir(const char *path, struct fuse_file_info *fi)
+{
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
+	if (e->e.dir->ops->release != NULL)
+		/* "The return value of release is ignored." */
+		e->e.dir->ops->release(path, fi);
+	e->refs--;
+	return 0;
+}
+
+
 int spfs_opendir(const char *path, struct fuse_file_info *fi)
 {
 	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, path);
@@ -311,13 +322,6 @@ int spfs_fsync(const char *path, int isdatasync, struct fuse_file_info *fi)
 	W_UNIMPLEMENTED();
 	return -EACCES;
 }
-
-int spfs_releasedir(const char *path, struct fuse_file_info *fi)
-{
-	W_UNIMPLEMENTED();
-	return -EACCES;
-}
-
 
 int spfs_fsyncdir(const char *path, int isdatasync, struct fuse_file_info *fi)
 {
