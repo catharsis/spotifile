@@ -105,6 +105,21 @@ int artists_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
 	return 0;
 }
 
+spfs_entity *create_track_wav_file(const gchar *name, sp_track *track) {
+	g_return_val_if_fail(name != NULL, NULL);
+	g_return_val_if_fail(track != NULL, NULL);
+	spfs_entity * wav = spfs_entity_file_create(name,
+			&(struct spfs_file_ops){
+			.open = wav_open,
+			.read = wav_read,
+			.release = wav_release
+			});
+
+	wav->auxdata = track;
+
+	return wav;
+}
+
 spfs_entity *create_track_browse_dir(sp_track *track) {
 	g_return_val_if_fail(track != NULL, NULL);
 	spfs_entity *track_browse_dir = spfs_entity_find_path(SPFS_DATA->root, "/browse/tracks");
@@ -125,16 +140,8 @@ spfs_entity *create_track_browse_dir(sp_track *track) {
 				)
 			);
 
-	spfs_entity * track_wav = spfs_entity_file_create("track.wav",
-			&(struct spfs_file_ops){
-			.open = wav_open,
-			.read = wav_read,
-			.release = wav_release
-			});
-
-	track_wav->auxdata = track;
-
-	spfs_entity_dir_add_child(track_dir, track_wav);
+	spfs_entity_dir_add_child(track_dir,
+			create_track_wav_file("track.wav", track));
 
 
 	spfs_entity_dir_add_child(track_dir,

@@ -209,10 +209,20 @@ void *spfs_init(struct fuse_conn_info *conn)
 
 	spfs_entity_dir_add_child(root, browsedir);
 
-	spfs_entity_dir_add_child(root,
+	spfs_entity * playlists_dir = spfs_entity_dir_create("playlists", NULL);
+	spfs_entity_dir_add_child(root, playlists_dir);
+
+	spfs_entity_dir_add_child(playlists_dir,
 			spfs_entity_dir_create(
-				"playlists",
-				&(struct spfs_dir_ops){.readdir = playlists_dir_readdir}
+				"meta",
+				&(struct spfs_dir_ops){.readdir = playlists_meta_dir_readdir}
+				)
+			);
+
+	spfs_entity_dir_add_child(playlists_dir,
+			spfs_entity_dir_create(
+				"music",
+				&(struct spfs_dir_ops){.readdir = playlists_music_dir_readdir}
 				)
 			);
 
