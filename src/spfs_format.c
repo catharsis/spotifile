@@ -27,13 +27,21 @@ GString * spfs_format_playlist_track_expand(const gchar *fmt, sp_track *track, i
 	}
 	GString *out = g_string_new(NULL);
 	bool specifier_found = false;
+	sp_artist *artist = NULL;
 	while (*fmt != '\0') {
 		if (specifier_found) {
 			switch (*fmt) {
 				case 'a':
-					out = g_string_append(out, spotify_artist_name(
-								spotify_track_artist(track, 0)
-								));
+					if (!artist)
+						artist = spotify_track_artist(track, 0);
+
+					if (artist != NULL) {
+						out = g_string_append(out, spotify_artist_name(artist));
+					}
+					else {
+						out = g_string_append(out, "Unknown Artist");
+					}
+
 					break;
 				case 'i':
 					g_string_append_printf(out, "%.2d", index);
