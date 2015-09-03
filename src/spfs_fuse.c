@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <libgen.h>
 #include <glib.h>
-
+#include <lame/lame.h>
 static void fill_dir_children(spfs_dir *dir, void *buf, fuse_fill_dir_t filler) {
 	g_return_if_fail(dir != NULL);
 
@@ -229,6 +229,9 @@ void *spfs_init(struct fuse_conn_info *conn)
 
 	data->root = root;
 	g_message("%s initialising ...", application_name);
+#ifdef HAVE_LIBLAME
+	g_message("Using LAME %s...", get_lame_version());
+#endif
 	session = spotify_session_init(conf->spotify_username, conf->spotify_password, NULL);
 	data->session = session;
 	spotify_threads_init(session);
