@@ -22,7 +22,7 @@ GArray *spotify_get_artistbrowse_portraits(sp_artistbrowse *artistbrowse);
 bool spotify_play_track(sp_session *session, sp_track *track);
 void spotify_seek_track(sp_session *session, int offset);
 int spotify_get_track_info(int *channels, int *rate);
-size_t spotify_get_audio(char *buf, size_t size);
+size_t spotify_get_audio(char *buf, size_t size, size_t *nsamples);
 bool spotify_is_playing(void);
 
 /*artists*/

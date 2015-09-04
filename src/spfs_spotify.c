@@ -413,10 +413,10 @@ GArray *spotify_get_playlist_tracks(sp_playlist *playlist) {
 // Tries to saturate buf with size bytes. Makes an effort to always return at least
 // some data when a track is playing, even if this means waiting for it to be
 // delivered.
-size_t spotify_get_audio(char *buf, size_t size) {
+size_t spotify_get_audio(char *buf, size_t size, size_t *nsamples) {
 	size_t sz = 0;
 	spfs_audio *audio = NULL;
-
+	size_t read_samples = 0;
 	if (!spotify_is_playing() || g_playback_done) {
 		g_debug("spotify not playing, no audio to get");
 		g_playback_done = false;
@@ -433,11 +433,12 @@ size_t spotify_get_audio(char *buf, size_t size) {
 		if (sz + seg_sz <= size) { // the entire segment fits
 			memcpy(buf+sz, audio->samples, seg_sz);
 			g_playback->nsamples -= audio->nsamples;
+			read_samples = audio->nsamples;
 			spfs_audio_free(audio);
 			sz += seg_sz;
 		}
 		else if (sz == 0) { // we have to return something, at least
-			size_t read_samples = size / (sizeof(int16_t) * audio->channels);
+			read_samples = size / (sizeof(int16_t) * audio->channels);
 
 			// yield the first <size> bytes
 			memcpy(buf, audio->samples, size);
@@ -457,6 +458,9 @@ size_t spotify_get_audio(char *buf, size_t size) {
 			break;
 		}
 	}
+
+	if (nsamples != NULL)
+		*nsamples = read_samples;
 	g_mutex_unlock(&(g_playback->mutex));
 	return sz;
 }

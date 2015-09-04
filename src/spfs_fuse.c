@@ -8,7 +8,6 @@
 #include <stdbool.h>
 #include <libgen.h>
 #include <glib.h>
-#include <lame/lame.h>
 static void fill_dir_children(spfs_dir *dir, void *buf, fuse_fill_dir_t filler) {
 	g_return_if_fail(dir != NULL);
 
@@ -263,6 +262,10 @@ void spfs_destroy(void *userdata)
 	spotify_threads_destroy();
 	spotify_session_destroy(session);
 	spfs_entity_destroy(spfsdata->root);
+#ifdef HAVE_LIBLAME
+	g_message("shutting down LAME");
+	lame_close(spfsdata->lame_flags);
+#endif
 	g_message("%s destroyed", application_name);
 }
 
