@@ -169,6 +169,18 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	return ret;
 }
 
+#ifdef HAVE_LIBLAME
+void lame_error_log(const char *format, va_list ap) {
+	g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, format, ap);
+}
+void lame_debug_log(const char *format, va_list ap) {
+	g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, format, ap);
+}
+void lame_msg_log(const char *format, va_list ap) {
+	g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, format, ap);
+}
+
+#endif
 void *spfs_init(struct fuse_conn_info *conn)
 {
 	sp_session *session = NULL;
@@ -231,6 +243,10 @@ void *spfs_init(struct fuse_conn_info *conn)
 	g_message("%s initialising ...", application_name);
 #ifdef HAVE_LIBLAME
 	g_message("Using LAME %s...", get_lame_version());
+	data->lame_flags = lame_init();
+	lame_set_errorf(data->lame_flags, lame_error_log);
+	lame_set_debugf(data->lame_flags, lame_debug_log);
+	lame_set_msgf(data->lame_flags, lame_msg_log);
 #endif
 	session = spotify_session_init(conf->spotify_username, conf->spotify_password, NULL);
 	data->session = session;

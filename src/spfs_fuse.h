@@ -7,6 +7,9 @@
 #include <errno.h>
 #include "spfs_fuse_entity.h"
 #include "spfs_spotify.h"
+#ifdef HAVE_LIBLAME
+#include <lame/lame.h>
+#endif
 struct fuse_operations spfs_get_fuse_operations();
 
 #define READ_SIZED_OFFSET(_Src, _SrcSz, _Buf, _Sz, _Off) do {\
@@ -25,6 +28,9 @@ struct spfs_data {
 	spfs_entity *root;
 	bool music_playing;
 	gchar *playlist_track_format;
+#ifdef HAVE_LIBLAME
+	lame_global_flags *lame_flags;
+#endif
 };
 
 #define SPFS_DATA ((struct spfs_data *)(fuse_get_context()->private_data))

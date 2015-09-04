@@ -97,7 +97,7 @@ static int log_level_to_syslog_level(GLogLevelFlags log_level) {
 
 static char log_level_ind(GLogLevelFlags log_level) {
 	char lvl;
-	switch (log_level) {
+	switch (log_level & ~G_LOG_FLAG_FATAL & ~G_LOG_FLAG_RECURSION) {
 		case G_LOG_LEVEL_ERROR:
 			lvl = 'E';
 			break;
@@ -117,7 +117,6 @@ static char log_level_ind(GLogLevelFlags log_level) {
 			lvl = 'D';
 			break;
 		default:
-			g_warn_if_reached();
 			lvl = '?';
 			break;
 
