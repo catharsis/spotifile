@@ -1,0 +1,66 @@
+#!/bin/sh
+# Print a version string.
+scriptversion=2015-09-05.1
+nl='
+'
+if test -d .git \
+    && v=`git describe --abbrev=4 --match='v*' HEAD 2>/dev/null \
+	  || git describe --abbrev=4 HEAD 2>/dev/null` \
+    && case $v in
+	 v[0-9]*) ;;
+	 *) (exit 1) ;;
+       esac
+then
+    # Is this a new git that lists number of commits since the last
+    # tag or the previous older version that did not?
+    #   Newer: v6.10-77-g0f8faeb
+    #   Older: v6.10-g0f8faeb
+    case $v in
+	*-*-*) : git describe is okay three part flavor ;;
+	*-*)
+	    : git describe is older two part flavor
+	    # Recreate the number of commits and rewrite such that the
+	    # result is the same as if we were using the newer version
+	    # of git describe.
+	    vtag=`echo "$v" | sed 's/-.*//'`
+	    numcommits=`git rev-list "$vtag"..HEAD | wc -l`
+	    v=`echo "$v" | sed "s/\(.*\)-\(.*\)/\1-$numcommits-\2/"`;
+	    ;;
+    esac
+
+    # Change the first '-' to a '.', so version-comparing tools work properly.
+    # Remove the "g" in git describe's output string, to save a byte.
+    v=`echo "$v" | sed 's/-/./;s/\(.*\)-g/\1-/'`;
+else
+    v=`cat .version` || exit 1
+	case $v in
+		*$nl*) v= ;; # reject multi-line output
+		[0-9]*) ;;
+		*) v= ;;
+	esac
+fi
+
+v=`echo "$v" |sed 's/^v//'`
+
+# Don't declare a version "dirty" merely because a time stamp has changed.
+git status > /dev/null 2>&1
+
+dirty=`sh -c 'git diff-index --name-only HEAD' 2>/dev/null` || dirty=
+case "$dirty" in
+    '') ;;
+    *) # Append the suffix only if there isn't one already.
+	case $v in
+	  *-dirty) ;;
+	  *) v="$v-dirty" ;;
+	esac ;;
+esac
+
+# Omit the trailing newline, so that m4_esyscmd can use the result directly.
+echo "$v" | tr -d '\012'
+
+# Local variables:
+# eval: (add-hook 'write-file-hooks 'time-stamp)
+# time-stamp-start: "scriptversion="
+# time-stamp-format: "%:y-%02m-%02d.%02H"
+# time-stamp-end: "$"
+# End:

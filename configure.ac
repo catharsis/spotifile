@@ -1,4 +1,4 @@
-AC_INIT([spotifile], m4_esyscmd([build-aux/git-version-gen .tarball-version]),
+AC_INIT([spotifile], m4_esyscmd([build-aux/spfs-version-gen]),
 [anton.lofgren@gmail.com])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Werror])
 AM_PROG_AR
