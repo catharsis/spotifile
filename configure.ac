@@ -4,7 +4,6 @@ AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Werror])
 AM_PROG_AR
 LT_INIT
 
-AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
