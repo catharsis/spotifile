@@ -35,7 +35,7 @@ else
     v=`cat .version` || exit 1
 	case $v in
 		*$nl*) v= ;; # reject multi-line output
-		[0-9]*) ;;
+		v[0-9]*) ;;
 		*) v= ;;
 	esac
 fi
