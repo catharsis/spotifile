@@ -3,7 +3,7 @@ spotifile [![Build Status](https://travis-ci.org/catharsis/spotifile.svg?branch=
 
 [FUSE](http://fuse.sourceforge.net/) file system for [Spotify](https://www.spotify.com)
 
-The goal of this project is to be able to provide a synthethic file system
+The aim of this project is to provide a synthethic file system
 as an interface towards [Spotify](https://www.spotify.com). That includes, for example, being able
 to check the state of your session by doing:
 
