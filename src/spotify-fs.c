@@ -203,6 +203,10 @@ static void load_configuration(struct spotifile_config *config)
 		}
 	}
 
+	if (!config->spotify_bitrate) {
+		config->spotify_bitrate = g_key_file_get_string(config_file, "spotify", "bitrate_preset", &err);
+	}
+
 out:
 	g_key_file_free(config_file);
 	g_free(config_path);
