@@ -20,6 +20,7 @@ enum {
 static struct fuse_opt spfs_opts[] = {
 	SPFS_OPT("username=%s",		spotify_username, 0),
 	SPFS_OPT("password=%s",		spotify_password, 0),
+	SPFS_OPT("bitrate_preset=%s",		spotify_bitrate, 0),
 	SPFS_OPT("-c %s",	config_file, 0),
 	SPFS_OPT("-f",			foreground, 1),
 	SPFS_OPT("-d",			debug, 1),
@@ -56,6 +57,7 @@ static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_ar
 					"spotify options:\n"
 					"		-o username=STRING\n"
 					"		-o password=STRING\n"
+					"		-o bitrate_preset=STRING (One of the following: 96kbps/160kbps/320kbps)\n"
 					, outargs->argv[0]);
 			exit(1);
 		case KEY_VERSION:
@@ -177,6 +179,10 @@ static void load_configuration(struct spotifile_config *config)
 		if (!config->spotify_password) {
 			g_message("No Spotify password specified: %s", err->message);
 		}
+	}
+
+	if (!config->spotify_bitrate) {
+		config->spotify_bitrate = g_key_file_get_string(config_file, "spotify", "bitrate_preset", &err);
 	}
 
 out:
