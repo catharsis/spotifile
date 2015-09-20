@@ -154,7 +154,7 @@ Looking inside of that directory, we see more information on the artist:
 And that's the whole tour for now! 
 
 ## Contributing
-User interaction & engagement is thouroughly encouraged! **spotifile** is still in active development and your feedback is very likely to impact the future direction of the project.
+User interaction & engagement is thoroughly encouraged! **spotifile** is still in active development and your feedback is very likely to impact the future direction of the project.
 
 Please report issues, feature requests and general feedback in the GitHub issue tracker. Bug requests should preferrably include as detailed steps to reproduce as you can manage (for extra credit, try to find a minimal test case that reproduces the bug). Please also include the output from `spotifile -d <mountpoint>` when reporting bugs, as it makes tracking them down that much easier.
 
