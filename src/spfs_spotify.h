@@ -11,6 +11,7 @@ void spotify_threads_destroy();
 sp_connectionstate spotify_connectionstate();
 const char * spotify_connectionstate_str(sp_connectionstate connectionstate);
 const char * spotify_track_offline_status_str(sp_track_offline_status);
+void spotify_bitrate_set(sp_session *, char *bitrate);
 
 /* higher level functions */
 GArray *spotify_get_playlists(sp_session *session);
