@@ -410,10 +410,77 @@ GArray *spotify_get_playlist_tracks(sp_playlist *playlist) {
 	return tracks;
 }
 
+size_t spotify_get_audio_mp3(char *buf, size_t size, lame_global_flags *lgf) {
+	size_t sz = 0;
+	int encoded = 0;
+	spfs_audio *audio = NULL;
+	if (!spotify_is_playing() || g_playback_done) {
+		g_debug("spotify not playing, no audio to get");
+		g_playback_done = false;
+		return 0;
+	}
+
+	g_mutex_lock(&(g_playback->mutex));
+	while (g_playback->playing != NULL && g_queue_is_empty(g_playback->queue)) {
+		g_playback->stutter += 1;
+		g_cond_wait(&(g_playback->cond), &(g_playback->mutex));
+	}
+
+	while ((audio = g_queue_pop_head(g_playback->queue)) != NULL && !(encoded == -1 && sz > 0)) {
+		encoded = lame_encode_buffer_interleaved(lgf, audio->samples, audio->nsamples, (unsigned char *)buf+sz, size-sz);
+		g_message("Encoded %d bytes", encoded);
+		switch (encoded ) {
+			case 0:
+				g_warning("LAME: No data encoded?");
+				break;
+			case -1:
+				g_warning("LAME: mp3buf too small! (%d samples, sz=%lu)", audio->nsamples, sz);
+				if (sz == 0) {
+					/* We have to yield something ...
+					 * Split this audio segment in half, push the latter
+					 * half back onto the queue, and try encoding the first half.
+					 *
+					 * Rinse & repeat, until we get a beat.
+					 * */
+					spfs_audio *orig_audio = audio;
+					size_t seg_sz = (orig_audio->nsamples / 2) * sizeof(int16_t) * orig_audio->channels;
+					audio = malloc(sizeof(*audio) + seg_sz);
+					audio->channels = orig_audio->channels;
+					audio->nsamples = orig_audio->nsamples / 2;
+					audio->rate = orig_audio->rate;
+					memcpy(audio->samples, orig_audio->samples, seg_sz);
+					memmove(orig_audio, orig_audio+seg_sz, (orig_audio->nsamples * sizeof(int16_t) * orig_audio->channels) - seg_sz);
+					orig_audio->nsamples -= audio->nsamples;
+					g_queue_push_head(g_playback->queue, orig_audio);
+				}
+				else {
+					/*Oh well, we've already got some data, better luck next time*/
+					g_queue_push_head(g_playback->queue, audio);
+				}
+				break;
+			case -2:
+				g_error("LAME: malloc() problem");
+				break;
+			case -3:
+				g_error("LAME: lame_init_params() not called");
+				break;
+			case -4:
+				g_warning("LAME: psycho acoustic problems");
+				break;
+			default:
+				g_playback->nsamples -= audio->nsamples;
+				sz += encoded;
+				break;
+		}
+	}
+	g_mutex_unlock(&(g_playback->mutex));
+	g_message("read %lu bytes of mp3 data", sz);
+	return sz;
+}
 // Tries to saturate buf with size bytes. Makes an effort to always return at least
 // some data when a track is playing, even if this means waiting for it to be
 // delivered.
-size_t spotify_get_audio(char *buf, size_t size, size_t *nsamples) {
+size_t spotify_get_audio(char *buf, size_t size) {
 	size_t sz = 0;
 	spfs_audio *audio = NULL;
 	size_t read_samples = 0;
@@ -433,7 +500,6 @@ size_t spotify_get_audio(char *buf, size_t size, size_t *nsamples) {
 		if (sz + seg_sz <= size) { // the entire segment fits
 			memcpy(buf+sz, audio->samples, seg_sz);
 			g_playback->nsamples -= audio->nsamples;
-			read_samples = audio->nsamples;
 			spfs_audio_free(audio);
 			sz += seg_sz;
 		}
@@ -459,8 +525,6 @@ size_t spotify_get_audio(char *buf, size_t size, size_t *nsamples) {
 		}
 	}
 
-	if (nsamples != NULL)
-		*nsamples = read_samples;
 	g_mutex_unlock(&(g_playback->mutex));
 	return sz;
 }

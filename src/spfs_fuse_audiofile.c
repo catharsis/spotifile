@@ -107,7 +107,7 @@ int wav_read(const char *path, char *buf, size_t size, off_t offset, struct fuse
 
 	if (read < size && (offset + read >= sizeof(header))) {
 		// get some audio, but only if we've read the entire header
-		read += spotify_get_audio(buf+read, size - read, NULL);
+		read += spotify_get_audio(buf+read, size - read);
 	}
 	expoff += read;
 	return read;
@@ -132,32 +132,8 @@ int mp3_read(const char *path, char *buf, size_t size, off_t offset, struct fuse
 		g_return_val_if_fail(lame_init_params(lgf) >= 0, -EINVAL);
 	}
 
-	const int PCM_BUFSZ = 8096*2;
-	short int pcm_buf[PCM_BUFSZ];
-	memset(pcm_buf, 0, PCM_BUFSZ);
-	size_t nsamples = 0;
-	size_t pcm_read = spotify_get_audio((char *)pcm_buf, PCM_BUFSZ, &nsamples);
-	g_message("Read %lu/%d bytes of PCM data (%lu samples)", pcm_read, PCM_BUFSZ, nsamples);
-	// with that done, we're ready to do some encoding!
-
-	int mp3_bufsz = 1.25 * nsamples + 7200;
-	unsigned char mp3_buf[mp3_bufsz];
-	g_message("MP3 buffer size: %d, samples: %lu (%d)", mp3_bufsz, nsamples, (int)nsamples);
-	int read = 0;
-	if (pcm_read > 0) {
-		if ((read = lame_encode_buffer_interleaved(lgf, pcm_buf, (int)nsamples, mp3_buf, mp3_bufsz)) < 0) {
-			g_error("Error encoding MP3 buffer!");
-		}
-	}
-	else {
-		if ((read = lame_encode_flush(lgf, mp3_buf, mp3_bufsz)) < 0) {
-			g_error("Error flushing MP3 buffer!"); //is this even possible?
-		}
-	}
-
 	memset(buf, 0, size);
-	memcpy(buf, mp3_buf, read);
-	g_message("Read: %d/%lu bytes at offset %lu", read, size, offset);
+	size_t read = spotify_get_audio_mp3((char *)buf, size, lgf);
 	return read;
 }
 #endif

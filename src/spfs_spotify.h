@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include <libspotify/api.h>
+#include <lame/lame.h>
 
 sp_session * spotify_session_init(const char *username, const char *password, const char *blob);
 void spotify_session_destroy(sp_session *);
@@ -22,7 +23,8 @@ GArray *spotify_get_artistbrowse_portraits(sp_artistbrowse *artistbrowse);
 bool spotify_play_track(sp_session *session, sp_track *track);
 void spotify_seek_track(sp_session *session, int offset);
 int spotify_get_track_info(int *channels, int *rate);
-size_t spotify_get_audio(char *buf, size_t size, size_t *nsamples);
+size_t spotify_get_audio_mp3(char *buf, size_t size, lame_global_flags *lgf);
+size_t spotify_get_audio(char *buf, size_t size);
 bool spotify_is_playing(void);
 
 /*artists*/
