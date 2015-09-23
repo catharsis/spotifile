@@ -47,7 +47,7 @@ $ ./configure && make && make check && make install
 Make sure you have all the required dependencies installed, or the ./configure step will likely complain loudly.
 
 ## Quick start
-The easiest way to get started with **spotifile** is to create a mountpoint somewhere (say, `/tmp/spotifile`) and run it like so `./spotifile -o username=spotify_username -o password=spotify_password /tmp/spotifile`. However, that's not recommendable since it'll leave your [Spotify](https://www.spotify.com) credentials in the open for anyone else with access to your machine. Instead, most users should opt to create a configuration file `~/.config/spotifile/spotifile.conf`, containing the credentials as such;
+The easiest way to get started with **spotifile** is to create a mountpoint somewhere (say, `mkdir /tmp/spotifile`) and run it like so `./spotifile -o username=spotify_username -o password=spotify_password /tmp/spotifile`. However, that's not recommendable since it'll leave your [Spotify](https://www.spotify.com) credentials in the open for anyone else with access to your machine. Instead, most users should opt to create a configuration file `~/.config/spotifile/spotifile.conf`, containing the credentials as such;
 
     [spotifile]
     username=myUsername
