@@ -49,7 +49,7 @@ Make sure you have all the required dependencies installed, or the ./configure s
 ## Quick start
 The easiest way to get started with **spotifile** is to create a mountpoint somewhere (say, `/tmp/spotifile`) and run it like so `./spotifile -o username=spotify_username -o password=spotify_password /tmp/spotifile`. However, that's not recommendable since it'll leave your [Spotify](https://www.spotify.com) credentials in the open for anyone else with access to your machine. Instead, most users should opt to create a configuration file `~/.config/spotifile/spotifile.conf`, containing the credentials as such;
 
-    [spotifile]
+    [spotify]
     username=myUsername
     password=myPassword
 Depending on your situation, it is likely a good idea to set as restrictive permissions on the file as possible - it does contain sensitive data after all!
