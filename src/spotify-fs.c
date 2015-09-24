@@ -163,6 +163,8 @@ static void load_configuration(struct spotifile_config *config)
 	GError *err = NULL;
 	if (!g_key_file_load_from_file(config_file, config->config_file, G_KEY_FILE_NONE, &err)) {
 		g_warning("Could not load configuration from %s: %s", config->config_file, err->message);
+		g_error_free(err);
+		err = NULL;
 		goto out;
 	}
 
@@ -171,6 +173,8 @@ static void load_configuration(struct spotifile_config *config)
 		config->spotify_username = g_key_file_get_string(config_file, "spotify", "username", &err);
 		if (!config->spotify_username) {
 			g_message("No Spotify username specified: %s", err->message);
+			g_error_free(err);
+			err = NULL;
 		}
 	}
 
@@ -178,6 +182,8 @@ static void load_configuration(struct spotifile_config *config)
 		config->spotify_password = g_key_file_get_string(config_file, "spotify", "password", &err);
 		if (!config->spotify_password) {
 			g_message("No Spotify password specified: %s", err->message);
+			g_error_free(err);
+			err = NULL;
 		}
 	}
 
@@ -189,6 +195,7 @@ out:
 	g_key_file_free(config_file);
 	g_free(config_path);
 }
+
 int main(int argc, char *argv[])
 {
 	int retval = 0;
