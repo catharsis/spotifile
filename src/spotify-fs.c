@@ -221,10 +221,10 @@ int main(int argc, char *argv[])
 
 	load_configuration(&conf);
 
-	if (conf.spotify_username != NULL && !conf.spotify_password && isatty(fileno(stdin)))
+	if (conf.spotify_username != NULL && conf.spotify_password == NULL && isatty(fileno(stdin)))
 	{
 		if((conf.spotify_password = getpass("spotify password:")) == NULL)
-			handle_error("getpass");
+			g_warning("getpass: %s", strerror(errno));
 	}
 
 	if (!conf.spotify_username) {
