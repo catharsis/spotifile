@@ -217,7 +217,6 @@ int main(int argc, char *argv[])
 	else
 		log_options->fp = NULL;
 
-	g_log_set_default_handler(spfs_log_handler, log_options);
 
 	load_configuration(&conf);
 
@@ -238,6 +237,8 @@ int main(int argc, char *argv[])
 	}
 
 	struct fuse_operations fuse_ops = spfs_get_fuse_operations();
+
+	g_log_set_default_handler(spfs_log_handler, log_options);
 	retval = fuse_main(args.argc, args.argv, &fuse_ops, &conf);
 	fuse_opt_free_args(&args);
 	if (retval != 0) {
