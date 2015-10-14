@@ -12,7 +12,7 @@ to check the state of your session by doing:
 
 Browsing!
 
-    $ cd /home/alofgren/spotifile/playlists/That\ Handsome\ Devil
+    $ cd /home/alofgren/spotifile/playlists/meta/That\ Handsome\ Devil
     $ ls
     lrwxrwxrwx 0 alofgren root 56 Jul 23 13:45 $=♡ -> ../../browse/tracks/spotify:track:3idPftQBuIvi0Mbpz7UUcc
     lrwxrwxrwx 0 alofgren root 56 Jul 23 13:45 70's Tuxedos -> ../../browse/tracks/spotify:track:275q2JSSckOAvPFF22ivc3
@@ -25,8 +25,8 @@ Browsing!
     
 Playback!
 
-    $ cd /home/alofgren/spotifile/playlists/Hank\ Williams
-    $ mplayer Long\ Gone\ Lonesome\ Blues/track.wav
+    $ cd /home/alofgren/spotifile/playlists/music/Hank\ Williams
+    $ mplayer 16\ -\ Long\ Gone\ Lonesome\ Blues.wav
 
 
 and so forth.
@@ -78,9 +78,9 @@ Before all else, let's consider the directory structure of a running **spotifile
     -r--r----- 0 alofgren root 0 Aug  7 09:59 connection
 
 
-In its current state, the root directory is pretty simple. It contains two directories, `browse` and `playlists`, as well as a file `connection` which contains a textual description of the current state of your [Spotify](https://www.spotify.com) connection. The main entrypoint in **spotifile** to your [Spotify](https://www.spotify.com) data is through the `playlists` directory. As you might expect, listing its contents will show you your familiar playlists. For me, that looks something like:
+In its current state, the root directory is pretty simple. It contains two directories, `browse` and `playlists`, as well as a file `connection` which contains a textual description of the current state of your [Spotify](https://www.spotify.com) connection. The main entrypoint in **spotifile** to your [Spotify](https://www.spotify.com) data is through the `playlists` directory, which in turn contains two subdirectories `meta` and `music`. As you might expect, listing the contents of these directories will show you your familiar playlists. For me, that looks something like:
 
-    $ ls -AlF playlists
+    $ ls -AlF playlists/meta/
     total 0
     dr-x------ 0 alofgren root 0 Aug  7 10:00 .357 String Band /
     dr-x------ 0 alofgren root 0 Aug  7 10:00 3 Inches of Blood/
@@ -97,9 +97,19 @@ In its current state, the root directory is pretty simple. It contains two direc
     dr-x------ 0 alofgren root 0 Aug  7 10:00 Candlemass - Epicus Doomicus Metallicus/
     # ... snip ...
 
-Each of these directories in turn, contain a collection of symlinks - one for each track in the playlist - pointing to the respective `track` directories in the `browse` directory. For example:
+For the `music` directory, which exists to make playback more convenient, each track is represented by a .wav file:
 
-    $ ls -AlF playlists/Arsonists/
+    $ ls -AlF playlists/music/Arsonists/
+    total 0
+    -r--r----- 0 alofgren root 0 Jun 20  2011 00 - Intro.wav
+    -r--r----- 0 alofgren root 0 Jun 20  2011 01 - Backdraft.wav
+    -r--r----- 0 alofgren root 0 Jun 20  2011 02 - Shit Ain’t Sweet.wav
+    -r--r----- 0 alofgren root 0 Jun 20  2011 03 - Pyromaniax.wav
+    # ... snip ...
+
+For the `meta` directory, each of its subdirectories in turn contain a collection of symlinks - one for each track in the playlist - pointing to the respective `track` directories in the `browse` directory. For example:
+
+    $ ls -AlF playlists/meta/Arsonists/
     total 0
     lrwxrwxrwx 0 alofgren root 56 Jun 20  2011 Alive -> ../../browse/tracks/spotify:track:5LEz8sfYIneF9la9icV9G0/
     lrwxrwxrwx 0 alofgren root 56 Jun 20  2011 Backdraft -> ../../browse/tracks/spotify:track:1iqvZV4BcMpV81WVJBuBTw/
