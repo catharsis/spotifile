@@ -201,6 +201,15 @@ static void load_configuration(struct spotifile_config *config)
 
 	if (!config->spotify_bitrate) {
 		config->spotify_bitrate = g_key_file_get_string(config_file, "spotify", "bitrate_preset", &err);
+    }
+
+	if (!config->mountpoint) {
+		config->mountpoint = g_key_file_get_string(config_file, "spotifile", "mountpoint", &err);
+		if (!config->mountpoint) {
+			g_message("No spotifile mountpoint specified: %s", err->message);
+			g_error_free(err);
+			err = NULL;
+		}
 	}
 
 out:
