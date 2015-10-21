@@ -61,6 +61,8 @@ static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_ar
 		case KEY_VERSION:
 			fprintf(stderr, "spotifile version " SPOTIFILE_VERSION "\n");
 			exit(0);
+		case FUSE_OPT_KEY_NONOPT:
+			((struct spotifile_config *)(data))->mountpoint = g_strdup(arg);
 	}
 	return 1;
 }
@@ -185,6 +187,15 @@ static void load_configuration(struct spotifile_config *config)
 		}
 	}
 
+	if (!config->mountpoint) {
+		config->mountpoint = g_key_file_get_string(config_file, "spotifile", "mountpoint", &err);
+		if (!config->mountpoint) {
+			g_message("No spotifile mountpoint specified: %s", err->message);
+			g_error_free(err);
+			err = NULL;
+		}
+	}
+
 out:
 	g_key_file_free(config_file);
 	g_free(config_path);
@@ -220,6 +231,12 @@ int main(int argc, char *argv[])
 
 	load_configuration(&conf);
 
+	if(!conf.mountpoint) {
+		g_warning("Missing mountpoint");
+		exit(1);
+	}
+
+	fuse_opt_add_arg(&args, conf.mountpoint);
 	if (conf.spotify_username != NULL && conf.spotify_password == NULL && isatty(fileno(stdin)))
 	{
 		if((conf.spotify_password = getpass("spotify password:")) == NULL)
