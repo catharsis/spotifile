@@ -731,8 +731,10 @@ void spotify_bitrate_set(sp_session *session, char *bitrate) {
     sp_error err;
     enum sp_bitrate b;
 
-    if (!bitrate)
+    if (!bitrate) {
+        g_debug("No bitrate config option, using spotify default bitrate");
         return;
+    }
 
     if (g_strcmp0(bitrate, "96kbps") == 0)
         b = SP_BITRATE_96k;
@@ -745,7 +747,9 @@ void spotify_bitrate_set(sp_session *session, char *bitrate) {
         return;
     }
 
+    g_mutex_lock(&g_spotify_api_mutex);
     err = sp_session_preferred_bitrate(session, b);
+    g_mutex_unlock(&g_spotify_api_mutex);
     if (err != SP_ERROR_OK) {
         g_warning("failed to set bitrate, birate (%s): %d", bitrate, b);
     }
