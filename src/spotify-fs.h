@@ -18,6 +18,7 @@
 struct spotifile_config {
 	char *spotify_username;
 	char *spotify_password;
+	char *spotify_bitrate;
 	char *config_file;
 	char *mountpoint;
 
