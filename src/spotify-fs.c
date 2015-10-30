@@ -65,6 +65,7 @@ static int spfs_opt_process(void *data, const char *arg, int key, struct fuse_ar
 			exit(0);
 		case FUSE_OPT_KEY_NONOPT:
 			((struct spotifile_config *)(data))->mountpoint = g_strdup(arg);
+			return 0;
 	}
 	return 1;
 }
