@@ -66,8 +66,8 @@ int spfs_access(const char *path, int mask)
 int connection_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
-	char *state_str =
-		g_strdup(spotify_connectionstate_str(spotify_connectionstate(session)));
+	gchar *state_str = g_strdup_printf("%s\n",
+			spotify_connectionstate_str(spotify_connectionstate(session)));
 
 	READ_OFFSET(state_str, buf, size, offset);
 	g_free(state_str);
