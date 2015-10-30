@@ -231,6 +231,7 @@ void *spfs_init(struct fuse_conn_info *conn)
 	session = spotify_session_init(conf->spotify_username, conf->spotify_password, NULL);
 	data->session = session;
 	spotify_threads_init(session);
+	spotify_bitrate_set(session, conf->spotify_bitrate);
 	g_message("%s initialised", application_name);
 	return data;
 
