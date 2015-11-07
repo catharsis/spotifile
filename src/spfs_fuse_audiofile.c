@@ -115,10 +115,17 @@ int wav_read(const char *path, char *buf, size_t size, off_t offset, struct fuse
 
 #ifdef HAVE_LIBLAME
 int mp3_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	static off_t expoff = 0;
 	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	sp_session *session = SPFS_SP_SESSION;
 	lame_global_flags *lgf = SPFS_DATA->lame_flags;
 	int channels = 0, rate = 0;
+
+	if (offset != expoff) {
+		g_warning("Seeking not supported for MP3 yet!");
+		expoff = 0;
+		return -EINVAL;
+	}
 	if (offset == 0) {
 		if (!spotify_play_track(session, e->auxdata)) {
 			g_warning("Failed to play track!");
@@ -126,14 +133,19 @@ int mp3_read(const char *path, char *buf, size_t size, off_t offset, struct fuse
 		}
 		(void) spotify_get_track_info(&channels, &rate);
 		// set LAME params
-		lame_set_num_channels(lgf, channels);
 		lame_set_in_samplerate(lgf, rate);
-		lame_set_VBR(lgf, vbr_default);
+		lame_set_num_channels(lgf, channels);
+		lame_set_write_id3tag_automatic(lgf, 1);
+		//lame_set_out_samplerate(lgf, 32000);
+		expoff = 0;
 		g_return_val_if_fail(lame_init_params(lgf) >= 0, -EINVAL);
 	}
 
+
 	memset(buf, 0, size);
-	size_t read = spotify_get_audio_mp3((char *)buf, size, lgf);
+	size_t read = spotify_get_audio_mp3(buf, size, lgf);
+	//read += lame_encode_flush_nogap(lgf, (unsigned char *)buf, size-read);
+	expoff += read;
 	return read;
 }
 #endif

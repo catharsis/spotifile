@@ -409,15 +409,19 @@ GArray *spotify_get_playlist_tracks(sp_playlist *playlist) {
 	g_mutex_unlock(&g_spotify_api_mutex);
 	return tracks;
 }
-
+#define INTERIM_MP3_BUFSZ 8192*20
 size_t spotify_get_audio_mp3(char *buf, size_t size, lame_global_flags *lgf) {
+	static unsigned char mp3_data[INTERIM_MP3_BUFSZ] = {0,};
+	static size_t mp3_data_len = 0;
 	size_t sz = 0;
 	int encoded = 0;
 	spfs_audio *audio = NULL;
+
 	if (!spotify_is_playing() || g_playback_done) {
-		g_debug("spotify not playing, no audio to get");
-		g_playback_done = false;
-		return 0;
+		g_warning("spotify not playing, no new audio to get"); /*FIXME: should be debug */
+		sz = lame_encode_flush(lgf, (unsigned char *)buf, size);
+		if (sz == 0) g_playback_done = false;
+		return sz;
 	}
 
 	g_mutex_lock(&(g_playback->mutex));
@@ -426,37 +430,38 @@ size_t spotify_get_audio_mp3(char *buf, size_t size, lame_global_flags *lgf) {
 		g_cond_wait(&(g_playback->cond), &(g_playback->mutex));
 	}
 
-	while ((audio = g_queue_pop_head(g_playback->queue)) != NULL && !(encoded == -1 && sz > 0)) {
-		encoded = lame_encode_buffer_interleaved(lgf, audio->samples, audio->nsamples, (unsigned char *)buf+sz, size-sz);
-		g_message("Encoded %d bytes", encoded);
+	/* Do we have anything in the interim buffer? Use up that data first. */
+	if (mp3_data_len > 0) {
+		sz = size > mp3_data_len ? mp3_data_len : size;
+
+		memcpy(buf, mp3_data, sz);
+		mp3_data_len -= sz;
+		memmove(mp3_data, mp3_data+sz, mp3_data_len);
+		g_message("Used %lu bytes from interim buffer (%lu bytes left)", sz, mp3_data_len);
+	}
+
+	while ((audio = g_queue_pop_head(g_playback->queue)) != NULL && sz < size) {
+		size_t to_copy = 0;
+		encoded = lame_encode_buffer_interleaved(lgf, audio->samples,
+				audio->nsamples, mp3_data, INTERIM_MP3_BUFSZ);
+
+		g_message("Encoded %d bytes from %d samples (%lu, %lu)", encoded, audio->nsamples, sizeof(short int), sizeof(int16_t));
 		switch (encoded ) {
 			case 0:
-				g_warning("LAME: No data encoded?");
+				g_playback->nsamples -= audio->nsamples;
+				spfs_audio_free(audio);
+				while (sz == 0 && g_playback->playing != NULL && g_queue_is_empty(g_playback->queue)) {
+					g_warning("LAME: No data encoded, waiting for more samples.");
+					g_playback->stutter += 1;
+					g_cond_wait(&(g_playback->cond), &(g_playback->mutex));
+				}
 				break;
 			case -1:
-				g_warning("LAME: mp3buf too small! (%d samples, sz=%lu)", audio->nsamples, sz);
 				if (sz == 0) {
-					/* We have to yield something ...
-					 * Split this audio segment in half, push the latter
-					 * half back onto the queue, and try encoding the first half.
-					 *
-					 * Rinse & repeat, until we get a beat.
-					 * */
-					spfs_audio *orig_audio = audio;
-					size_t seg_sz = (orig_audio->nsamples / 2) * sizeof(int16_t) * orig_audio->channels;
-					audio = malloc(sizeof(*audio) + seg_sz);
-					audio->channels = orig_audio->channels;
-					audio->nsamples = orig_audio->nsamples / 2;
-					audio->rate = orig_audio->rate;
-					memcpy(audio->samples, orig_audio->samples, seg_sz);
-					memmove(orig_audio, orig_audio+seg_sz, (orig_audio->nsamples * sizeof(int16_t) * orig_audio->channels) - seg_sz);
-					orig_audio->nsamples -= audio->nsamples;
-					g_queue_push_head(g_playback->queue, orig_audio);
+					g_error("LAME: mp3buf too small! (%d samples, sz=%lu)", audio->nsamples, sz);
 				}
-				else {
-					/*Oh well, we've already got some data, better luck next time*/
-					g_queue_push_head(g_playback->queue, audio);
-				}
+				/*Oh well, we've already got some data, better luck next time*/
+				g_queue_push_head(g_playback->queue, audio);
 				break;
 			case -2:
 				g_error("LAME: malloc() problem");
@@ -469,12 +474,19 @@ size_t spotify_get_audio_mp3(char *buf, size_t size, lame_global_flags *lgf) {
 				break;
 			default:
 				g_playback->nsamples -= audio->nsamples;
-				sz += encoded;
+				spfs_audio_free(audio);
+				mp3_data_len += encoded;
+				to_copy = (size_t) encoded > (size - sz) ? size - sz : (size_t) encoded;
+				memcpy(buf+sz, mp3_data, to_copy);
+				memmove(mp3_data, mp3_data + to_copy, mp3_data_len - to_copy);
+
+				mp3_data_len -= to_copy;
+				sz += to_copy;
 				break;
 		}
 	}
 	g_mutex_unlock(&(g_playback->mutex));
-	g_message("read %lu bytes of mp3 data", sz);
+	g_message("read %lu/%lu bytes of mp3 data", sz, size);
 	return sz;
 }
 // Tries to saturate buf with size bytes. Makes an effort to always return at least
