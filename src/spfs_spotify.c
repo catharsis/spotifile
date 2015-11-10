@@ -728,29 +728,30 @@ const char * spotify_track_offline_status_str(sp_track_offline_status offlinesta
 }
 
 void spotify_bitrate_set(sp_session *session, char *bitrate) {
-    sp_error err;
-    enum sp_bitrate b;
+	sp_error err;
+	enum sp_bitrate b;
 
-    if (!bitrate)
-        return;
+	g_return_if_fail(bitrate != NULL);
 
-    if (g_strcmp0(bitrate, "96kbps") == 0)
-        b = SP_BITRATE_96k;
-    else if (g_strcmp0(bitrate, "160kbps") == 0)
-        b = SP_BITRATE_160k;
-    else if (g_strcmp0(bitrate, "320kbps") == 0)
-        b = SP_BITRATE_320k;
-    else {
-        g_warning("bitrate not supported (%s). use one of: 96kbps/160kbps/320kbps", bitrate);
-        return;
-    }
+	if (g_strcmp0(bitrate, "96kbps") == 0)
+		b = SP_BITRATE_96k;
+	else if (g_strcmp0(bitrate, "160kbps") == 0)
+		b = SP_BITRATE_160k;
+	else if (g_strcmp0(bitrate, "320kbps") == 0)
+		b = SP_BITRATE_320k;
+	else {
+		g_warning("bitrate not supported (%s). use one of: 96kbps/160kbps/320kbps", bitrate);
+		return;
+	}
 
-    err = sp_session_preferred_bitrate(session, b);
-    if (err != SP_ERROR_OK) {
-        g_warning("failed to set bitrate, birate (%s): %d", bitrate, b);
-    }
-    else {
-       g_debug("bitrate set to %s", bitrate);
-    }
+	g_mutex_lock(&g_spotify_api_mutex);
+	err = sp_session_preferred_bitrate(session, b);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	if (err != SP_ERROR_OK) {
+		g_warning("failed to set bitrate, birate (%s): %d", bitrate, b);
+	}
+	else {
+		g_debug("bitrate set to %s", bitrate);
+	}
 }
 
