@@ -123,20 +123,23 @@ int mp3_read(const char *path, char *buf, size_t size, off_t offset, struct fuse
 
 	if (offset != expoff) {
 		g_warning("Seeking not supported for MP3 yet!");
-		expoff = 0;
-		return -EINVAL;
+		(void) lame_encode_flush(lgf, (unsigned char *)buf, size);
 	}
+
 	if (offset == 0) {
 		if (!spotify_play_track(session, e->auxdata)) {
 			g_warning("Failed to play track!");
 			return -EINVAL;
 		}
-		(void) spotify_get_track_info(&channels, &rate);
+		int duration = spotify_get_track_info(&channels, &rate);
 		// set LAME params
 		lame_set_in_samplerate(lgf, rate);
 		lame_set_num_channels(lgf, channels);
+		gchar * tag = g_strdup_printf("TLEN=%d", duration);
+		id3tag_set_fieldvalue(lgf, tlen_tag);
+		g_free(tlen_tag);
+
 		lame_set_write_id3tag_automatic(lgf, 1);
-		//lame_set_out_samplerate(lgf, 32000);
 		expoff = 0;
 		g_return_val_if_fail(lame_init_params(lgf) >= 0, -EINVAL);
 	}

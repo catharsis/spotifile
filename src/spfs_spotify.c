@@ -443,9 +443,9 @@ size_t spotify_get_audio_mp3(char *buf, size_t size, lame_global_flags *lgf) {
 	while ((audio = g_queue_pop_head(g_playback->queue)) != NULL && sz < size) {
 		size_t to_copy = 0;
 		encoded = lame_encode_buffer_interleaved(lgf, audio->samples,
-				audio->nsamples, mp3_data, INTERIM_MP3_BUFSZ);
+				audio->nsamples, mp3_data+mp3_data_len, INTERIM_MP3_BUFSZ-mp3_data_len);
 
-		g_message("Encoded %d bytes from %d samples (%lu, %lu)", encoded, audio->nsamples, sizeof(short int), sizeof(int16_t));
+		g_message("Encoded %d bytes from %d samples (data_len: %lu)", encoded, audio->nsamples, mp3_data_len);
 		switch (encoded ) {
 			case 0:
 				g_playback->nsamples -= audio->nsamples;
@@ -477,6 +477,7 @@ size_t spotify_get_audio_mp3(char *buf, size_t size, lame_global_flags *lgf) {
 				spfs_audio_free(audio);
 				mp3_data_len += encoded;
 				to_copy = (size_t) encoded > (size - sz) ? size - sz : (size_t) encoded;
+				g_message("Copying %lu bytes ...", to_copy);
 				memcpy(buf+sz, mp3_data, to_copy);
 				memmove(mp3_data, mp3_data + to_copy, mp3_data_len - to_copy);
 
