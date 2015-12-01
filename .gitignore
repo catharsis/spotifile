@@ -15,9 +15,31 @@
 *.exe
 *.out
 *.app
+spotifile
 
 # Common artifacts
 *.swp
 
 #appkey
 appkey.c
+
+Makefile
+Makefile.in
+aclocal.m4
+ar-lib
+autom4te.cache
+compile
+config.h
+config.h.in
+*~
+.dirstamp
+.deps
+tags
+configure
+config.log
+config.status
+depcomp
+missing
+stamp-h1
+test-driver
+install-sh
