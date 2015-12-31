@@ -341,6 +341,23 @@ int spotify_get_track_info(int *channels, int *rate) {
 	return duration;
 }
 
+GArray *spotify_get_track_artists(sp_track *track) {
+	g_mutex_lock(&g_spotify_api_mutex);
+	if (!wait_on_track(track)) {
+		g_mutex_unlock(&g_spotify_api_mutex);
+		g_warn_if_reached();
+		return NULL;
+	}
+	int n = sp_track_num_artists(track);
+	GArray *artists= g_array_sized_new(false, false, sizeof(sp_track *), n);
+	for (int i = 0; i < n; ++i) {
+		sp_artist *artist = sp_track_artist(track, i);
+		g_array_insert_val(artists, i, artist);
+	}
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return artists;
+}
+
 GArray *spotify_get_artistbrowse_albums(sp_artistbrowse *ab) {
 	g_mutex_lock(&g_spotify_api_mutex);
 	if (!wait_on_artistbrowse(ab)) {
@@ -576,6 +593,7 @@ SPFS_SPOTIFY_API_FUNC(int, track, disc)
 SPFS_SPOTIFY_API_FUNC(int, track, index)
 SPFS_SPOTIFY_API_FUNC(int, track, popularity)
 SPFS_SPOTIFY_API_FUNC(int, track, num_artists)
+SPFS_SPOTIFY_API_FUNC(sp_album *, track, album)
 SPFS_SPOTIFY_API_FUNC(sp_track_offline_status, track, offline_get_status)
 SPFS_SPOTIFY_API_FUNC2(sp_artist *, track, artist, int, index)
 SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_starred)

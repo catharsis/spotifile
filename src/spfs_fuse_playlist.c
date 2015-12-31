@@ -2,6 +2,7 @@
 #include "spfs_spotify.h"
 #include "spfs_fuse_playlist.h"
 #include "spfs_fuse_track.h"
+#include "xspf.h"
 /*readdir for a single playlist directory*/
 static int playlist_dir_meta_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
@@ -30,6 +31,54 @@ static int playlist_dir_meta_readdir(const char *path, void *buf, fuse_fill_dir_
 	return 0;
 }
 
+static xspf * populate_xspf_from_sp_track(xspf *x, sp_track *track) {
+	x = xspf_track_set_duration(x, spotify_track_duration(track));
+	gchar *name = spotify_track_name(track);
+	x = xspf_track_set_title(x, name);
+	g_free(name);
+
+	sp_album *album = spotify_track_album(track);
+	gchar *album_name = spotify_album_name(album);
+	xspf_track_set_album(x, album_name);
+	g_free(album_name);
+
+	GArray *artists = spotify_get_track_artists(track);
+	for (guint i = 0; i < artists->len; ++i) {
+		sp_artist *artist = g_array_index(artists, sp_artist *, i);
+		gchar * artist_name = spotify_artist_name(artist);
+		x = xspf_track_set_creator(x, artist_name);
+		g_free(artist_name);
+	}
+	g_array_free(artists, false);
+	return x;
+}
+
+static int xspf_read(const char *path, char *buf, size_t size, off_t offset,
+		struct fuse_file_info *fi) {
+	spfs_entity *e = SPFS_FH2ENT(fi->fh);
+	GHashTableIter iter;
+	gpointer k, v;
+	xspf *x = xspf_new();
+	x = xspf_begin_playlist(x);
+	x = xspf_begin_tracklist(x);
+	g_hash_table_iter_init(&iter, e->parent->e.dir->children);
+	while (g_hash_table_iter_next(&iter, &k, &v)) {
+		if (0 == g_strcmp0("playlist.xspf", k)) continue;
+		x = xspf_begin_track(x);
+		sp_track *track = ((spfs_entity *)v)->auxdata;
+		x = xspf_track_set_location(x, k);
+		x = populate_xspf_from_sp_track(x, track);
+		x = xspf_end_track(x);
+	}
+	x = xspf_end_tracklist(x);
+	x = xspf_end_playlist(x);
+
+	gchar *xspf_str = xspf_free(x, false);
+	READ_OFFSET(xspf_str, buf, size, offset);
+	g_free(xspf_str);
+	return size;
+}
+
 static int playlist_dir_music_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 		struct fuse_file_info *fi) {
 
@@ -49,6 +98,14 @@ static int playlist_dir_music_readdir(const char *path, void *buf, fuse_fill_dir
 			spfs_entity_dir_add_child(e, wav_file);
 		}
 		g_free(formatted_trackname);
+	}
+
+	if (!spfs_entity_dir_has_child(e->e.dir, "playlist.xspf")) {
+		spfs_entity *xspf_playlist = spfs_entity_file_create("playlist.xspf",
+				&(struct spfs_file_ops){
+				.read = xspf_read
+				});
+		spfs_entity_dir_add_child(e, xspf_playlist);
 	}
 	g_array_free(tracks, false);
 	return 0;
