@@ -208,6 +208,34 @@ out:
 	g_free(config_path);
 }
 
+static bool is_mounted(const char *fstypename, const char *mountpoint) {
+	GIOChannel *procmount_chan = NULL;
+	GError *err = NULL;
+	gchar *filename = g_strdup_printf("/proc/%d/mounts", getpid());
+	procmount_chan = g_io_channel_new_file(filename, "r", &err);
+	g_free(filename);
+	if (procmount_chan == NULL) {
+		g_warning("Failed to read mounts: %s", err->message);
+		return false;
+	}
+
+	err = NULL;
+	gchar *line = NULL;
+	bool found = false;
+	gchar *mountpoint_dir = g_path_get_dirname(mountpoint);
+	gchar *mountline = g_strdup_printf("%s %s fuse.%s", fstypename, mountpoint_dir, fstypename);
+	g_free(mountpoint_dir);
+	while (g_io_channel_read_line(procmount_chan, &line, NULL, NULL, &err) ==
+			G_IO_STATUS_NORMAL && !found) {
+		found = (strncasecmp(line, mountline, strlen(mountline)-1) == 0);
+	}
+
+	g_free(mountline);
+	g_io_channel_shutdown(procmount_chan, false, NULL);
+	g_io_channel_unref(procmount_chan);
+	return found;
+}
+
 int main(int argc, char *argv[])
 {
 	int retval = 0;
@@ -242,6 +270,13 @@ int main(int argc, char *argv[])
 		g_warning("Missing mountpoint");
 		exit(1);
 	}
+
+	gchar * prgname = g_path_get_basename(argv[0]);
+	if (is_mounted(prgname, conf.mountpoint)) {
+		g_message("Already mounted on %s", conf.mountpoint);
+		exit(0);
+	}
+	g_free(prgname);
 
 	fuse_opt_add_arg(&args, conf.mountpoint);
 	if (conf.spotify_username != NULL && conf.spotify_password == NULL && isatty(fileno(stdin)))
