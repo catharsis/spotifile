@@ -216,6 +216,7 @@ static bool is_mounted(const char *fstypename, const char *mountpoint) {
 	g_free(filename);
 	if (procmount_chan == NULL) {
 		g_warning("Failed to read mounts: %s", err->message);
+		g_error_free(err);
 		return false;
 	}
 
@@ -225,10 +226,13 @@ static bool is_mounted(const char *fstypename, const char *mountpoint) {
 	gchar *mountpoint_dir = g_path_get_dirname(mountpoint);
 	gchar *mountline = g_strdup_printf("%s %s fuse.%s", fstypename, mountpoint_dir, fstypename);
 	g_free(mountpoint_dir);
-	while (g_io_channel_read_line(procmount_chan, &line, NULL, NULL, &err) ==
-			G_IO_STATUS_NORMAL && !found) {
+	while (!found && g_io_channel_read_line(procmount_chan, &line, NULL, NULL, &err) ==
+			G_IO_STATUS_NORMAL) {
 		found = (strncasecmp(line, mountline, strlen(mountline)-1) == 0);
+		g_free(line);
 	}
+	if (err)
+		g_error_free(err);
 
 	g_free(mountline);
 	g_io_channel_shutdown(procmount_chan, false, NULL);
