@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
 
 	if ((getuid() == 0) || (geteuid() == 0)) {
 		fprintf(stderr, "Running %s as root is not a good idea\n", application_name);
-		return 1;
+		exit(1);
 	}
 
 	fuse_opt_parse(&args, &conf, spfs_opts, spfs_opt_process);
@@ -303,5 +303,5 @@ int main(int argc, char *argv[])
 	if (retval != 0) {
 		fprintf(stderr, "Error initialising spotifile\n");
 	}
-	return retval;
+	exit(retval);
 }
