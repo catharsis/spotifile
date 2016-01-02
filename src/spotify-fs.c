@@ -228,7 +228,7 @@ static bool is_mounted(const char *fstypename, const char *mountpoint) {
 	g_free(mountpoint_dir);
 	while (!found && g_io_channel_read_line(procmount_chan, &line, NULL, NULL, &err) ==
 			G_IO_STATUS_NORMAL) {
-		found = (strncasecmp(line, mountline, strlen(mountline)-1) == 0);
+		found = (strncasecmp(line, mountline, strlen(mountline)) == 0);
 		g_free(line);
 	}
 	if (err)
