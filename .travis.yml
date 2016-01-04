@@ -19,7 +19,7 @@ before_script:
 
 script:
     - export PKG_CONFIG_PATH=$HOME/libspotify/lib/pkgconfig
-    - ./configure --build ${SPOTIFILE_MARCH}-pc-linux-gnu
+    - ./configure --build $SPOTIFILE_MARCH-pc-linux-gnu
     - make
 
 addons:
