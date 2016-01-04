@@ -7,8 +7,18 @@
 #include <errno.h>
 #include "spfs_fuse_entity.h"
 #include "spfs_spotify.h"
+/**
+ * Returns the SPFS fuse_operations struct.
+ */
 struct fuse_operations spfs_get_fuse_operations();
 
+/**
+ * Copies \p _Sz or \p _SrcSz (whichever happens to be smaller) bytes from
+ * buffer \p _Src starting at offset \p _Off into buffer \p _Buf.
+ *
+ * After invocation, the variable passed as _Sz will be set to the number
+ * of bytes copied.
+ */
 #define READ_SIZED_OFFSET(_Src, _SrcSz, _Buf, _Sz, _Off) do {\
 	if (_SrcSz > (size_t)_Off) { \
 		if ( _Off + _Sz > _SrcSz) \
@@ -18,6 +28,9 @@ struct fuse_operations spfs_get_fuse_operations();
 	else _Sz = 0;  } while (0)
 
 
+/**
+ * Convenience wrapper for READ_SIZED_OFFSET() which uses the length of _Str as _SrcSz
+ */
 #define READ_OFFSET(_Str, _Buf, _Sz, _Off) READ_SIZED_OFFSET(_Str, strlen(_Str), _Buf, _Sz, _Off)
 
 struct spfs_data {
