@@ -1,0 +1,254 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Spotifile by catharsis</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Spotifile</h1>
+        <p>FUSE file system for Spotify</p>
+
+        <p class="view"><a href="https://github.com/catharsis/spotifile">View the Project on GitHub <small>catharsis/spotifile</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/catharsis/spotifile/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/catharsis/spotifile/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/catharsis/spotifile">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a id="spotifile--" class="anchor" href="#spotifile--" aria-hidden="true"><span class="octicon octicon-link"></span></a>spotifile <a href="https://travis-ci.org/catharsis/spotifile"><img src="https://travis-ci.org/catharsis/spotifile.svg?branch=master" alt="Build Status"></a> </h1>
+
+<p><a href="http://fuse.sourceforge.net/">FUSE</a> file system for <a href="https://www.spotify.com">Spotify</a></p>
+
+<p>The aim of this project is to provide a synthethic file system
+as an interface towards <a href="https://www.spotify.com">Spotify</a>. That includes, for example, being able
+to check the state of your session by doing:</p>
+
+<pre><code>$ cat /home/alofgren/spotifile/connection
+logged in
+</code></pre>
+
+<p>Browsing!</p>
+
+<pre><code>$ cd /home/alofgren/spotifile/playlists/meta/That\ Handsome\ Devil
+$ ls
+lrwxrwxrwx 0 alofgren root 56 Jul 23 13:45 $=♡ -&gt; ../../browse/tracks/spotify:track:3idPftQBuIvi0Mbpz7UUcc
+lrwxrwxrwx 0 alofgren root 56 Jul 23 13:45 70's Tuxedos -&gt; ../../browse/tracks/spotify:track:275q2JSSckOAvPFF22ivc3
+lrwxrwxrwx 0 alofgren root 56 Jul 23 13:45 Adapt -&gt; ../../browse/tracks/spotify:track:0FR8IORfrowXozk4AmN210
+lrwxrwxrwx 0 alofgren root 56 Jul 23 13:45 A Drink to Death -&gt; ../../browse/tracks/spotify:track:1RcVweLcA8SjfJlJH3tR2K
+lrwxrwxrwx 0 alofgren root 56 Jul 23 13:45 Becky's New Car -&gt; ../../browse/tracks/spotify:track:3Y22h4qDSUQtrqB1VD6VEC
+lrwxrwxrwx 0 alofgren root 56 Jul 23 13:45 Bored -&gt; ../../browse/tracks/spotify:track:0PncakcV6gutcv4ps2MBK1
+lrwxrwxrwx 0 alofgren root 56 Jul 23 13:45 Bullet Math -&gt; ../../browse/tracks/spotify:track:20J7iJSATwrvRQR3enxFN3
+...
+</code></pre>
+
+<p>Playback!</p>
+
+<pre><code>$ cd /home/alofgren/spotifile/playlists/music/Hank\ Williams
+$ mplayer 16\ -\ Long\ Gone\ Lonesome\ Blues.wav
+</code></pre>
+
+<p>and so forth.</p>
+
+<p><img src="http://i.imgur.com/jP91r79.gif" alt="gif"></p>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<h3>
+<a id="arch-linux" class="anchor" href="#arch-linux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Arch Linux</h3>
+
+<p>A PKGBUILD for the latest released version is available in the <a href="https://aur.archlinux.org/packages/spotifile/">AUR</a>.</p>
+
+<h3>
+<a id="installing-from-source" class="anchor" href="#installing-from-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing from source</h3>
+
+<p>To install <strong>spotifile</strong> from source, do the following</p>
+
+<div class="highlight highlight-source-shell"><pre>$ git clone git@github.com:catharsis/spotifile.git spotifile <span class="pl-k">&amp;&amp;</span> <span class="pl-c1">cd</span> spotifile
+$ autoreconf -si
+$ ./configure <span class="pl-k">&amp;&amp;</span> make <span class="pl-k">&amp;&amp;</span> make check <span class="pl-k">&amp;&amp;</span> make install</pre></div>
+
+<p>Make sure you have all the required dependencies installed, or the ./configure step will likely complain loudly.</p>
+
+<h2>
+<a id="quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick start</h2>
+
+<p>The easiest way to get started with <strong>spotifile</strong> is to create a mountpoint somewhere (say, <code>mkdir /tmp/spotifile</code>) and run it like so <code>./spotifile -o username=spotify_username -o password=spotify_password /tmp/spotifile</code>. However, that's not recommendable since it'll leave your <a href="https://www.spotify.com">Spotify</a> credentials in the open for anyone else with access to your machine. Instead, most users should opt to create a configuration file <code>~/.config/spotifile/spotifile.conf</code>, containing the credentials as such;</p>
+
+<pre><code>[spotify]
+username=myUsername
+password=myPassword
+</code></pre>
+
+<p>Depending on your situation, it is likely a good idea to set as restrictive permissions on the file as possible - it does contain sensitive data after all!</p>
+
+<pre><code>chmod 600 ~/.config/spotifile/spotifile.conf
+</code></pre>
+
+<p>Now, you can leave out the credentials from the command line;</p>
+
+<pre><code>./spotifile /tmp/spotifile
+</code></pre>
+
+<p>If everything goes as expected, you should now be able to <code>cd</code> to <code>/tmp/spotifile</code>, and check your connection status like this;</p>
+
+<pre><code>$ cd /tmp/spotifile
+$ cat connection
+logged in
+</code></pre>
+
+<p>To unmount the <strong>spotifile</strong>, simply run <code>fusermount -u -z /tmp/spotifile</code>.</p>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Before all else, let's consider the directory structure of a running <strong>spotifile</strong> instance, and briefly discuss its contents:</p>
+
+<pre><code>$ ls -AlF
+total 0
+dr-x------ 0 alofgren root 0 Aug  7 09:59 browse/
+dr-x------ 0 alofgren root 0 Aug  7 09:59 playlists/
+-r--r----- 0 alofgren root 0 Aug  7 09:59 connection
+</code></pre>
+
+<p>In its current state, the root directory is pretty simple. It contains two directories, <code>browse</code> and <code>playlists</code>, as well as a file <code>connection</code> which contains a textual description of the current state of your <a href="https://www.spotify.com">Spotify</a> connection. The main entrypoint in <strong>spotifile</strong> to your <a href="https://www.spotify.com">Spotify</a> data is through the <code>playlists</code> directory, which in turn contains two subdirectories <code>meta</code> and <code>music</code>. As you might expect, listing the contents of these directories will show you your familiar playlists. For me, that looks something like:</p>
+
+<pre><code>$ ls -AlF playlists/meta/
+total 0
+dr-x------ 0 alofgren root 0 Aug  7 10:00 .357 String Band /
+dr-x------ 0 alofgren root 0 Aug  7 10:00 3 Inches of Blood/
+dr-x------ 0 alofgren root 0 Aug  7 10:00 Alaskan Fishermen – Alaskan Fishermen/
+dr-x------ 0 alofgren root 0 Aug  7 10:00 Antic Clay/
+dr-x------ 0 alofgren root 0 Aug  7 10:00 Arsonists/
+dr-x------ 0 alofgren root 0 Aug  7 10:00 At The Gates — Slaughter Of The Soul/
+dr-x------ 0 alofgren root 0 Aug  7 10:00 Bathory/
+dr-x------ 0 alofgren root 0 Aug  7 10:00 Behemoth/
+dr-x------ 0 alofgren root 0 Aug  7 10:00 Blandat/
+dr-x------ 0 alofgren root 0 Aug  7 10:00 Blaze Foley/
+dr-x------ 0 alofgren root 0 Aug  7 10:00 Brown Bird/
+dr-x------ 0 alofgren root 0 Aug  7 10:00 Burzum — Filosofem/
+dr-x------ 0 alofgren root 0 Aug  7 10:00 Candlemass - Epicus Doomicus Metallicus/
+# ... snip ...
+</code></pre>
+
+<p>For the <code>music</code> directory, which exists to make playback more convenient, each track is represented by a .wav file:</p>
+
+<pre><code>$ ls -AlF playlists/music/Arsonists/
+total 0
+-r--r----- 0 alofgren root 0 Jun 20  2011 00 - Intro.wav
+-r--r----- 0 alofgren root 0 Jun 20  2011 01 - Backdraft.wav
+-r--r----- 0 alofgren root 0 Jun 20  2011 02 - Shit Ain’t Sweet.wav
+-r--r----- 0 alofgren root 0 Jun 20  2011 03 - Pyromaniax.wav
+# ... snip ...
+</code></pre>
+
+<p>For the <code>meta</code> directory, each of its subdirectories in turn contain a collection of symlinks - one for each track in the playlist - pointing to the respective <code>track</code> directories in the <code>browse</code> directory. For example:</p>
+
+<pre><code>$ ls -AlF playlists/meta/Arsonists/
+total 0
+lrwxrwxrwx 0 alofgren root 56 Jun 20  2011 Alive -&gt; ../../browse/tracks/spotify:track:5LEz8sfYIneF9la9icV9G0/
+lrwxrwxrwx 0 alofgren root 56 Jun 20  2011 Backdraft -&gt; ../../browse/tracks/spotify:track:1iqvZV4BcMpV81WVJBuBTw/
+lrwxrwxrwx 0 alofgren root 56 Jun 20  2011 Blaze -&gt; ../../browse/tracks/spotify:track:247py70aNT1jbDmnZGj3wL/
+# ... snip ...
+</code></pre>
+
+<p>The targets of these links are created <em>lazily</em>, meaning that they are materialized only as something referring to them is inspected by the user, such as the symlinks above. As you might've already guessed - or observed, if you've strayed from the beaten path of this guide - this means that in a newly started <strong>spotifile</strong> instance, the <code>browse</code> directory only contains three empty directories:</p>
+
+<pre><code>$ tree browse
+browse
+├── albums
+├── artists
+└── tracks
+
+3 directories, 0 files
+</code></pre>
+
+<p>This pattern of lazy creation is repeated throughout <strong>spotifile</strong>, for all main "objects" (currently artists, albums, and tracks). Speaking of which, let's inspect one of these browse directories:</p>
+
+<pre><code>$ $ ls -AlF browse/tracks/spotify:track:0xAyc8r3C1BNQzzDMKbOkw
+total 0
+dr-x------ 0 alofgren root 0 Aug  7 10:19 artists/
+-r--r----- 0 alofgren root 0 Aug  7 10:19 autolinked
+-r--r----- 0 alofgren root 0 Aug  7 10:19 disc
+-r--r----- 0 alofgren root 0 Aug  7 10:19 duration
+-r--r----- 0 alofgren root 0 Aug  7 10:19 index
+-r--r----- 0 alofgren root 0 Aug  7 10:19 local
+-r--r----- 0 alofgren root 0 Aug  7 10:19 name
+-r--r----- 0 alofgren root 0 Aug  7 10:19 offlinestatus
+-r--r----- 0 alofgren root 0 Aug  7 10:19 popularity
+-r--r----- 0 alofgren root 0 Aug  7 10:19 starred
+-r--r----- 0 alofgren root 0 Aug  7 10:19 track.wav
+</code></pre>
+
+<p>First and foremost, the name of the directory is a <a href="https://en.wikipedia.org/wiki/Uniform_resource_identifier">URI</a>, which uniquely identifies the resource the directory contains. If you've ever shared tracks with other <a href="https://www.spotify.com">Spotify</a> users, you've likely seen one before. Most of the files in the directory are (or should be) self-explanatory. The <code>duration</code> file, for example, contains the number of milliseconds the track lasts, and the contents of the <code>starred</code> track indicate whether the track is "starred" or not.</p>
+
+<p>The <code>track.wav</code> file is the actual music (if it's a music track we're looking at, and not an audiobook, or something), and should be playable by most of the music players on your system.</p>
+
+<p>The <code>artists</code> directory contains links to all the artists performing on this track:</p>
+
+<pre><code>ls -AlF browse/tracks/spotify:track:0xAyc8r3C1BNQzzDMKbOkw/artists
+total 0
+lrwxrwxrwx 0 alofgren root 54 Aug  7 10:28 Arsonists -&gt; ../../../artists/spotify:artist:4VQ9fD75w7JlKZDIZKtpdf/
+</code></pre>
+
+<p>Looking inside of that directory, we see more information on the artist:</p>
+
+<pre><code>ls -AlF browse/tracks/spotify:track:0xAyc8r3C1BNQzzDMKbOkw/artists/Arsonists/
+total 0
+dr-x------ 0 alofgren root 0 Aug  7 10:28 albums/
+dr-x------ 0 alofgren root 0 Aug  7 10:28 portraits/
+-r--r----- 0 alofgren root 0 Aug  7 10:28 biography
+-r--r----- 0 alofgren root 0 Aug  7 10:28 name
+</code></pre>
+
+<p>And that's the whole tour for now! </p>
+
+<h2>
+<a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>User interaction &amp; engagement is thoroughly encouraged! <strong>spotifile</strong> is still in active development and your feedback is very likely to impact the future direction of the project.</p>
+
+<p>Please report issues, feature requests and general feedback in the GitHub issue tracker. Bug requests should preferrably include as detailed steps to reproduce as you can manage (for extra credit, try to find a minimal test case that reproduces the bug). Please also include the output from <code>spotifile -d &lt;mountpoint&gt;</code> when reporting bugs, as it makes tracking them down that much easier.</p>
+
+<p>Code contributions are of course very welcome, but I'd appreciate it if you'd go through the trouble of opening an issue or shoot me an e-mail before you start hacking so that we may discuss the change before any code is written. Needless to say, this doesn't necessarily apply to trivial fixes (like typo corrections) or obvious bug fixes (like segfaults). If you have a patch that you think would be neat to include, either open a pull request on GitHub, or send me a patch-mail directly.</p>
+
+<h2>
+<a id="oh-dear-why" class="anchor" href="#oh-dear-why" aria-hidden="true"><span class="octicon octicon-link"></span></a>Oh dear, why?</h2>
+
+<p>For fun, mostly. But also because I've been looking for a media playing solution that is both scriptable and ties into my otherwise somewhat minimalistic desktop environment nicely. I think this approach is not as crazy as it might initially sound for those purposes. It's worth a shot at least, yes?</p>
+
+<h2>
+<a id="dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>dependencies</h2>
+
+<blockquote>
+<ul>
+<li>libspotify</li>
+<li>fuse &gt;= 2.6</li>
+<li>autotools</li>
+<li>GLib2</li>
+</ul>
+</blockquote>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/catharsis">catharsis</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
