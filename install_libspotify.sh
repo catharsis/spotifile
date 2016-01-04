@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
-wget https://developer.spotify.com/download/libspotify/libspotify-12.1.51-Linux-x86_64-release.tar.gz
-tar -xvf libspotify-12.1.51-Linux-x86_64-release.tar.gz
-cd libspotify-12.1.51-Linux-x86_64-release && patch < ../libspotify-Makefile.patch && make prefix=$HOME/libspotify install
+SPOTIFILE_MARCH=$(SPOTIFILE_MARCH:-x86_64)
+PKG_NAME="libspotify-12.1.51-Linux-$(SPOTIFILE_MARCH)-release"
+wget https://developer.spotify.com/download/libspotify/$(PKG_NAME).tar.gz
+tar -xvf $(PKG_NAME).tar.gz
+cd $(PKG_NAME) && patch < ../libspotify-Makefile.patch && make prefix=$HOME/libspotify install
 
