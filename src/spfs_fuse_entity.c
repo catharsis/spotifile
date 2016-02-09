@@ -244,6 +244,7 @@ spfs_entity * spfs_entity_dir_create(const gchar *name, struct spfs_dir_ops *ops
 	e->e.dir->ops = g_new0(struct spfs_dir_ops, 1);
 	if (ops != NULL) {
 		e->e.dir->ops->readdir = ops->readdir;
+		e->e.dir->ops->mkdir = ops->mkdir;
 	}
 
 	e->e.dir->children = g_hash_table_new_full(g_str_hash,

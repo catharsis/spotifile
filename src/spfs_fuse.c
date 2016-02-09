@@ -1,6 +1,7 @@
 #include "spotify-fs.h"
 #include "spfs_fuse.h"
 #include "spfs_fuse_playlist.h"
+#include "spfs_fuse_search.h"
 #include "spfs_path.h"
 #include <string.h>
 #include <errno.h>
@@ -209,6 +210,13 @@ void *spfs_init(struct fuse_conn_info *conn)
 
 	spfs_entity_dir_add_child(root, browsedir);
 
+	spfs_entity_dir_add_child(root, spfs_entity_dir_create(
+				"search",
+				&(struct spfs_dir_ops){
+				.mkdir = search_dir_mkdir
+				}
+				));
+
 	spfs_entity * playlists_dir = spfs_entity_dir_create("playlists", NULL);
 	spfs_entity_dir_add_child(root, playlists_dir);
 
@@ -260,7 +268,20 @@ int spfs_mknod(const char *path, mode_t mode, dev_t dev)
 
 int spfs_mkdir(const char *path, mode_t mode)
 {
-	W_UNIMPLEMENTED();
+	sp_session *session = SPFS_SP_SESSION;
+	g_return_val_if_fail(session != NULL, 0);
+	gchar * parent_dirname = g_path_get_dirname(path);
+	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, parent_dirname);
+	g_free(parent_dirname);
+	if (!e || e->type != SPFS_DIR) {
+		return -ENOENT;
+	}
+
+	spfs_dir *dir = e->e.dir;
+	if (dir->ops->mkdir != NULL) {
+		g_warning("here!");
+		return dir->ops->mkdir(path, mode);
+	}
 	return -EACCES;
 }
 

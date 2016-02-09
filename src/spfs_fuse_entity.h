@@ -13,6 +13,7 @@ typedef int (*SpfsReleaseFunc)(const char *path, struct fuse_file_info *fi);
 typedef int (*SpfsReaddirFunc)(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
 
 typedef int (*SpfsReadlinkFunc)(const char *path, char *buf, size_t len);
+typedef int (*SpfsMkdirFunc)(const char *path, mode_t mode);
 
 
 struct spfs_entity;
@@ -31,6 +32,7 @@ struct spfs_file_ops {
 struct spfs_dir_ops {
 	SpfsReaddirFunc readdir;
 	SpfsReleaseFunc release;
+	SpfsMkdirFunc mkdir;
 };
 
 struct spfs_link_ops {
