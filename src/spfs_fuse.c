@@ -271,16 +271,18 @@ int spfs_mkdir(const char *path, mode_t mode)
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
 	gchar * parent_dirname = g_path_get_dirname(path);
-	spfs_entity *e = spfs_entity_find_path((SPFS_DATA)->root, parent_dirname);
+	spfs_entity *parent = spfs_entity_find_path((SPFS_DATA)->root, parent_dirname);
 	g_free(parent_dirname);
-	if (!e || e->type != SPFS_DIR) {
+	if (!parent || parent->type != SPFS_DIR) {
 		return -ENOENT;
 	}
 
-	spfs_dir *dir = e->e.dir;
+	spfs_dir *dir = parent->e.dir;
 	if (dir->ops->mkdir != NULL) {
-		g_warning("here!");
-		return dir->ops->mkdir(path, mode);
+		gchar * new_dirname = g_path_get_basename(path);
+		int ret = dir->ops->mkdir(parent, new_dirname, mode);
+		g_free(new_dirname);
+		return ret;
 	}
 	return -EACCES;
 }

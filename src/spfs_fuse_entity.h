@@ -6,6 +6,30 @@
 #include <fuse.h>
 #include <stdbool.h>
 
+struct spfs_entity;
+typedef enum SpfsEntityType {
+	SPFS_FILE = S_IFREG,
+	SPFS_DIR = S_IFDIR,
+	SPFS_LINK = S_IFLNK,
+} SpfsEntityType;
+
+typedef struct spfs_entity {
+	gchar *name;
+	struct spfs_entity *parent;
+	void *auxdata;
+	SpfsEntityType type;
+	unsigned int refs;
+	time_t ctime;
+	time_t atime;
+	time_t mtime;
+	union {
+		struct spfs_file *file;
+		struct spfs_dir *dir;
+		struct spfs_link *link;
+	} e;
+} spfs_entity;
+
+
 typedef int (*SpfsReadFunc)(const char *path, char *buff, size_t sz, off_t offset, struct fuse_file_info *fi);
 typedef int (*SpfsOpenFunc)(const char *path, struct fuse_file_info *fi);
 typedef int (*SpfsReleaseFunc)(const char *path, struct fuse_file_info *fi);
@@ -13,15 +37,7 @@ typedef int (*SpfsReleaseFunc)(const char *path, struct fuse_file_info *fi);
 typedef int (*SpfsReaddirFunc)(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
 
 typedef int (*SpfsReadlinkFunc)(const char *path, char *buf, size_t len);
-typedef int (*SpfsMkdirFunc)(const char *path, mode_t mode);
-
-
-struct spfs_entity;
-typedef enum SpfsEntityType {
-	SPFS_FILE = S_IFREG,
-	SPFS_DIR = S_IFDIR,
-	SPFS_LINK = S_IFLNK,
-} SpfsEntityType;
+typedef int (*SpfsMkdirFunc)(spfs_entity *parent, const char *dirname, mode_t mode);
 
 struct spfs_file_ops {
 	SpfsReadFunc read;
@@ -54,23 +70,6 @@ typedef struct spfs_link {
 	struct spfs_link_ops *ops;
 	gchar *target;
 } spfs_link;
-
-
-typedef struct spfs_entity {
-	gchar *name;
-	struct spfs_entity *parent;
-	void *auxdata;
-	SpfsEntityType type;
-	unsigned int refs;
-	time_t ctime;
-	time_t atime;
-	time_t mtime;
-	union {
-		struct spfs_file *file;
-		struct spfs_dir *dir;
-		struct spfs_link *link;
-	} e;
-} spfs_entity;
 
 
 /**
