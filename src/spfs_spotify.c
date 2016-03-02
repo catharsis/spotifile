@@ -19,7 +19,7 @@ static GMutex g_spotify_notify_mutex;
 static GMutex g_spotify_api_mutex;
 static GCond g_spotify_notify_cond;
 static GCond g_spotify_data_available;
-static GThread *spotify_thread;
+static GThread *g_spotify_thread, *g_fuse_thread;
 
 /*foward declarations*/
 void * spotify_thread_start(void *arg);
@@ -50,41 +50,43 @@ void * spotify_thread_start(void *arg);
 
 #define SPFS_SPOTIFY_API_PRELUDE(_Ret, _Type, _Field) \
 	_Ret _Field; \
-	g_mutex_lock(&g_spotify_api_mutex); \
+	if (g_thread_self() == g_fuse_thread) \
+		g_mutex_lock(&g_spotify_api_mutex); \
 	if (!wait_on_ ## _Type( _Type )) { \
 		g_warning(STRINGIFY(_Type) " never loaded, unreliable " STRINGIFY(_Field) " information"); \
 	}
+
+#define SPFS_SPOTIFY_API_POSTLUDE(_Field) \
+	if (g_thread_self() == g_fuse_thread) \
+		g_mutex_unlock(&g_spotify_api_mutex); \
+	return _Field;
 
 #define SPFS_SPOTIFY_SESSION_API_FUNC(_Ret, _Type, _Field) \
 	_Ret spotify_ ## _Type ## _ ## _Field (sp_session *session, sp_ ## _Type * _Type) { \
 		SPFS_SPOTIFY_API_PRELUDE(_Ret, _Type, _Field) \
 		_Field = sp_ ## _Type ## _ ## _Field (session, _Type); \
-		g_mutex_unlock(&g_spotify_api_mutex); \
-		return _Field; \
+		SPFS_SPOTIFY_API_POSTLUDE(_Field) \
 	}
 
 #define SPFS_SPOTIFY_API_FUNC2(_Ret, _Type, _Field, _Type2, _Field2) \
 	_Ret spotify_ ## _Type ## _ ## _Field (sp_ ## _Type * _Type, _Type2 _Field2) { \
 		SPFS_SPOTIFY_API_PRELUDE(_Ret, _Type, _Field) \
 		_Field = sp_ ## _Type ## _ ## _Field (_Type, _Field2); \
-		g_mutex_unlock(&g_spotify_api_mutex); \
-		return _Field; \
+		SPFS_SPOTIFY_API_POSTLUDE(_Field) \
 	}
 
 #define SPFS_SPOTIFY_API_FUNC_COPY(_Ret, _Type, _Field, _Copy) \
 	_Ret spotify_ ## _Type ## _ ## _Field (sp_ ## _Type * _Type) { \
 		SPFS_SPOTIFY_API_PRELUDE(_Ret, _Type, _Field) \
 		_Field = _Copy(sp_ ## _Type ## _ ## _Field (_Type)); \
-		g_mutex_unlock(&g_spotify_api_mutex); \
-		return _Field; \
+		SPFS_SPOTIFY_API_POSTLUDE(_Field) \
 	}
 
 #define SPFS_SPOTIFY_API_FUNC(_Ret, _Type, _Field) \
 	_Ret spotify_ ## _Type ## _ ## _Field (sp_ ## _Type * _Type) { \
 		SPFS_SPOTIFY_API_PRELUDE(_Ret, _Type, _Field) \
 		_Field = sp_ ## _Type ## _ ## _Field (_Type); \
-		g_mutex_unlock(&g_spotify_api_mutex); \
-		return _Field; \
+		SPFS_SPOTIFY_API_POSTLUDE(_Field) \
 	}
 
 
@@ -291,15 +293,16 @@ void spotify_threads_init(sp_session *session)
 	g_cond_init(&g_spotify_data_available);
 	g_running = true;
 	g_playback = spfs_audio_playback_new();
-	spotify_thread = g_thread_new("spotify", spotify_thread_start, session);
+	g_fuse_thread = g_thread_self();
+	g_spotify_thread = g_thread_new("spotify", spotify_thread_start, session);
 }
 
 void spotify_threads_destroy()
 {
 	g_running = false;
 	g_debug("spotify thread cancel request sent");
-	g_thread_join(spotify_thread);
-	spotify_thread = NULL;
+	g_thread_join(g_spotify_thread);
+	g_spotify_thread = NULL;
 	g_debug("spotify threads destroyed");
 }
 
@@ -579,6 +582,8 @@ sp_search *spotify_search_create_track_search(sp_session *session, const gchar
 
 /* Search */
 SPFS_SPOTIFY_API_FUNC(int, search, total_tracks)
+SPFS_SPOTIFY_API_FUNC(int, search, num_tracks)
+SPFS_SPOTIFY_API_FUNC2(sp_track *, search, track, int, index)
 
 /* Image */
 void * spotify_image_data(sp_image * image, size_t * size) {
@@ -718,7 +723,7 @@ void * spotify_thread_start(void *arg) {
 	}
 	g_mutex_unlock(&g_spotify_notify_mutex);
 	g_debug("spotify session processing thread: ended");
-	return (void *)NULL;
+	return NULL;
 }
 
 /* "public" convenience functions */

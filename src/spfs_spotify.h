@@ -55,6 +55,8 @@ sp_album *spotify_track_album(sp_track *track);
 
 /* search */
 int spotify_search_total_tracks(sp_search *search);
+int spotify_search_num_tracks(sp_search *search);
+sp_track *spotify_search_track(sp_search *search, int index);
 sp_search * spotify_search_create_track_search(sp_session *session, const gchar * query, int offset, int count, void (*cb)(sp_search *, void *), void * user_data);
 
 /* images */
