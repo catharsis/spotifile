@@ -75,10 +75,11 @@ Before all else, let's consider the directory structure of a running **spotifile
     total 0
     dr-x------ 0 alofgren root 0 Aug  7 09:59 browse/
     dr-x------ 0 alofgren root 0 Aug  7 09:59 playlists/
+    dr-x------ 0 alofgren root 0 Aug  7 09:59 search/
     -r--r----- 0 alofgren root 0 Aug  7 09:59 connection
 
 
-In its current state, the root directory is pretty simple. It contains two directories, `browse` and `playlists`, as well as a file `connection` which contains a textual description of the current state of your [Spotify](https://www.spotify.com) connection. The main entrypoint in **spotifile** to your [Spotify](https://www.spotify.com) data is through the `playlists` directory, which in turn contains two subdirectories `meta` and `music`. As you might expect, listing the contents of these directories will show you your familiar playlists. For me, that looks something like:
+In its current state, the root directory is pretty simple. It contains three directories, `browse`, `playlists` and `search` as well as a file `connection` which contains a textual description of the current state of your [Spotify](https://www.spotify.com) connection. The main entrypoint in **spotifile** to your [Spotify](https://www.spotify.com) data is through the `playlists` directory, which in turn contains two subdirectories `meta` and `music`. As you might expect, listing the contents of these directories will show you your familiar playlists. For me, that looks something like:
 
     $ ls -AlF playlists/meta/
     total 0
@@ -160,6 +161,19 @@ Looking inside of that directory, we see more information on the artist:
     dr-x------ 0 alofgren root 0 Aug  7 10:28 portraits/
     -r--r----- 0 alofgren root 0 Aug  7 10:28 biography
     -r--r----- 0 alofgren root 0 Aug  7 10:28 name
+
+As mentioned earlier, the root directory contains a `search` directory. Unsuprisingly, this directory can be used to perform searches. A search is initiated by creating a new directory inside the `search` directory, like so:
+
+    mkdir search/Trogdor
+
+> **NOTE**: `search` is still in a somewhat experimental state, which is why it is a bit more rudimentary in its implementation than the `browse` and `playlists` directories.
+
+As you might have guessed, the name of the created directory also acts as the query. The created directory will asynchronously be populated with the results for the query:
+
+    ls search/Trogdor/
+    The Bearded Bard - Trogdor The Burninator.wav
+
+Currently, a query is hard limited to 100 search results. It is also only possible to search for tracks, at the moment.
 
 And that's the whole tour for now! 
 
