@@ -25,6 +25,9 @@ static GThread *spotify_thread;
 void * spotify_thread_start(void *arg);
 
 #define STRINGIFY(x) #x
+/* Generates a wait_on_<type> function. The generated function
+ * can be used for "waiting on", or synchronizing, state of libspotify
+ * data containers */
 #define SPFS_WAIT_ON_FUNC(_Type) \
 	static bool wait_on_ ## _Type (sp_ ## _Type *_Type) { \
 		if (!_Type) return false; \
@@ -109,6 +112,7 @@ SPFS_WAIT_ON_FUNC(track)
 SPFS_WAIT_ON_FUNC(playlist)
 SPFS_WAIT_ON_FUNC(playlistcontainer)
 SPFS_WAIT_ON_FUNC(artistbrowse)
+SPFS_WAIT_ON_FUNC(search)
 #define wait_on_session(S) (true)
 int spotify_login(sp_session * session, const char *username, const char *password, const char *blob) {
 	if (username == NULL) {
@@ -544,6 +548,7 @@ char * spotify_artistbrowse_biography(sp_artistbrowse *artistbrowse) {
 	return biography;
 
 }
+
 sp_artistbrowse * spotify_artistbrowse_create(sp_session * session, sp_artist * artist) {
 	g_return_val_if_fail(session != NULL, NULL);
 	g_return_val_if_fail(artist != NULL, NULL);
@@ -560,7 +565,22 @@ sp_artistbrowse * spotify_artistbrowse_create(sp_session * session, sp_artist * 
 	return ab;
 }
 
-/* Image "getters"*/
+
+sp_search *spotify_search_create_track_search(sp_session *session, const gchar
+		* query, int offset, int count, void (*cb)(sp_search *, void *), void *user_data){
+	sp_search *search = NULL;
+	g_mutex_lock(&g_spotify_api_mutex);
+	search = sp_search_create(session, query, offset, count, 0, 0, 0, 0, 0, 0, SP_SEARCH_STANDARD, cb, user_data);
+	g_mutex_unlock(&g_spotify_api_mutex);
+	return search;
+}
+
+/* API WRAPPERS */
+
+/* Search */
+SPFS_SPOTIFY_API_FUNC(int, search, total_tracks)
+
+/* Image */
 void * spotify_image_data(sp_image * image, size_t * size) {
 	SPFS_SPOTIFY_API_PRELUDE(const void *, image, data);
 	data = sp_image_data(image, size);
@@ -570,23 +590,23 @@ void * spotify_image_data(sp_image * image, size_t * size) {
 	return data_copy;
 }
 
-/* Playlist "getters"*/
+/* Playlist */
 SPFS_SPOTIFY_API_FUNC_COPY(gchar *, playlist, name, g_strdup)
 SPFS_SPOTIFY_API_FUNC(int, playlist, num_tracks)
 SPFS_SPOTIFY_API_FUNC2(sp_track *, playlist, track, int, index)
 SPFS_SPOTIFY_API_FUNC2(int, playlist, track_create_time, int, index)
 
-/* Artist "getters"*/
+/* Artist */
 SPFS_SPOTIFY_API_FUNC_COPY(gchar *, artist, name, g_strdup)
 
-/* Album "getters"*/
+/* Album */
 SPFS_SPOTIFY_API_FUNC_COPY(gchar *, album, name, g_strdup)
 SPFS_SPOTIFY_API_FUNC2(const byte *, album, cover, sp_image_size, size);
 
-/* Artist browse "getters" */
+/* Artist browse */
 SPFS_SPOTIFY_API_FUNC(sp_artist *, artistbrowse, artist);
 
-/* Track "getters"*/
+/* Track */
 SPFS_SPOTIFY_API_FUNC_COPY(gchar *, track, name, g_strdup)
 SPFS_SPOTIFY_API_FUNC(int, track, duration)
 SPFS_SPOTIFY_API_FUNC(int, track, disc)
@@ -600,11 +620,11 @@ SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_starred)
 SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_local)
 SPFS_SPOTIFY_SESSION_API_FUNC(bool, track, is_autolinked)
 
-/* Playlist container "getters"*/
+/* Playlist container */
 SPFS_SPOTIFY_API_FUNC(int, playlistcontainer, num_playlists)
 SPFS_SPOTIFY_API_FUNC2(sp_playlist *, playlistcontainer, playlist, int, index)
 
-/* Session "getters" */
+/* Session */
 SPFS_SPOTIFY_API_FUNC(sp_playlistcontainer *, session, playlistcontainer)
 
 sp_link * spotify_link_create_from_artist(sp_artist *artist) {
@@ -661,6 +681,7 @@ int spotify_link_as_string(sp_link *link, char *buf, int buffer_size) {
 	return ret;
 
 }
+/* END API WRAPPERS */
 
 /*thread routine*/
 void * spotify_thread_start(void *arg) {

@@ -13,9 +13,9 @@ spotifile_SOURCES = src/spfs_fuse.c src/spfs_fuse.h \
 					src/spfs_fuse_playlist.c src/spfs_fuse_playlist.h \
 					src/spfs_fuse_utils.c src/spfs_fuse_utils.h \
 					src/spfs_fuse_entity.c src/spfs_fuse_entity.h \
-					src/spfs_fuse_search.c src/spfs_fuse_search.h \
 					src/spfs_path.c src/spfs_path.h \
 					src/spfs_spotify.c src/spfs_spotify.h \
+					src/spfs_fuse_search.c src/spfs_fuse_search.h \
 					src/spfs_audio.c src/spfs_audio.h \
 					src/xspf.c src/xspf.h \
 					src/spotify-fs.c src/spotify-fs.h \

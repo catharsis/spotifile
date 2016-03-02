@@ -53,6 +53,10 @@ sp_track_offline_status spotify_track_offline_get_status(sp_track *track);
 sp_artist *spotify_track_artist(sp_track *track, int index);
 sp_album *spotify_track_album(sp_track *track);
 
+/* search */
+int spotify_search_total_tracks(sp_search *search);
+sp_search * spotify_search_create_track_search(sp_session *session, const gchar * query, int offset, int count, void (*cb)(sp_search *, void *), void * user_data);
+
 /* images */
 sp_image * spotify_image_create(sp_session *session, const byte *id);
 void * spotify_image_data(sp_image *image, size_t *size);
