@@ -29,7 +29,7 @@
       </header>
       <section>
         <h1>
-<a id="spotifile--" class="anchor" href="#spotifile--" aria-hidden="true"><span class="octicon octicon-link"></span></a>spotifile <a href="https://travis-ci.org/catharsis/spotifile"><img src="https://travis-ci.org/catharsis/spotifile.svg?branch=master" alt="Build Status"></a> </h1>
+<a id="spotifile--" class="anchor" href="#spotifile--" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>spotifile <a href="https://travis-ci.org/catharsis/spotifile"><img src="https://travis-ci.org/catharsis/spotifile.svg?branch=master" alt="Build Status"></a> </h1>
 
 <p><a href="http://fuse.sourceforge.net/">FUSE</a> file system for <a href="https://www.spotify.com">Spotify</a></p>
 
@@ -66,15 +66,15 @@ $ mplayer 16\ -\ Long\ Gone\ Lonesome\ Blues.wav
 <p><img src="http://i.imgur.com/jP91r79.gif" alt="gif"></p>
 
 <h2>
-<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation</h2>
 
 <h3>
-<a id="arch-linux" class="anchor" href="#arch-linux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Arch Linux</h3>
+<a id="arch-linux" class="anchor" href="#arch-linux" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Arch Linux</h3>
 
 <p>A PKGBUILD for the latest released version is available in the <a href="https://aur.archlinux.org/packages/spotifile/">AUR</a>.</p>
 
 <h3>
-<a id="installing-from-source" class="anchor" href="#installing-from-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing from source</h3>
+<a id="installing-from-source" class="anchor" href="#installing-from-source" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installing from source</h3>
 
 <p>To install <strong>spotifile</strong> from source, do the following</p>
 
@@ -85,7 +85,7 @@ $ ./configure <span class="pl-k">&amp;&amp;</span> make <span class="pl-k">&amp;
 <p>Make sure you have all the required dependencies installed, or the ./configure step will likely complain loudly.</p>
 
 <h2>
-<a id="quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick start</h2>
+<a id="quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Quick start</h2>
 
 <p>The easiest way to get started with <strong>spotifile</strong> is to create a mountpoint somewhere (say, <code>mkdir /tmp/spotifile</code>) and run it like so <code>./spotifile -o username=spotify_username -o password=spotify_password /tmp/spotifile</code>. However, that's not recommendable since it'll leave your <a href="https://www.spotify.com">Spotify</a> credentials in the open for anyone else with access to your machine. Instead, most users should opt to create a configuration file <code>~/.config/spotifile/spotifile.conf</code>, containing the credentials as such;</p>
 
@@ -114,7 +114,7 @@ logged in
 <p>To unmount the <strong>spotifile</strong>, simply run <code>fusermount -u -z /tmp/spotifile</code>.</p>
 
 <h2>
-<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Usage</h2>
 
 <p>Before all else, let's consider the directory structure of a running <strong>spotifile</strong> instance, and briefly discuss its contents:</p>
 
@@ -122,10 +122,11 @@ logged in
 total 0
 dr-x------ 0 alofgren root 0 Aug  7 09:59 browse/
 dr-x------ 0 alofgren root 0 Aug  7 09:59 playlists/
+dr-x------ 0 alofgren root 0 Aug  7 09:59 search/
 -r--r----- 0 alofgren root 0 Aug  7 09:59 connection
 </code></pre>
 
-<p>In its current state, the root directory is pretty simple. It contains two directories, <code>browse</code> and <code>playlists</code>, as well as a file <code>connection</code> which contains a textual description of the current state of your <a href="https://www.spotify.com">Spotify</a> connection. The main entrypoint in <strong>spotifile</strong> to your <a href="https://www.spotify.com">Spotify</a> data is through the <code>playlists</code> directory, which in turn contains two subdirectories <code>meta</code> and <code>music</code>. As you might expect, listing the contents of these directories will show you your familiar playlists. For me, that looks something like:</p>
+<p>In its current state, the root directory is pretty simple. It contains three directories, <code>browse</code>, <code>playlists</code> and <code>search</code> as well as a file <code>connection</code> which contains a textual description of the current state of your <a href="https://www.spotify.com">Spotify</a> connection. The main entrypoint in <strong>spotifile</strong> to your <a href="https://www.spotify.com">Spotify</a> data is through the <code>playlists</code> directory, which in turn contains two subdirectories <code>meta</code> and <code>music</code>. As you might expect, listing the contents of these directories will show you your familiar playlists. For me, that looks something like:</p>
 
 <pre><code>$ ls -AlF playlists/meta/
 total 0
@@ -215,10 +216,27 @@ dr-x------ 0 alofgren root 0 Aug  7 10:28 portraits/
 -r--r----- 0 alofgren root 0 Aug  7 10:28 name
 </code></pre>
 
+<p>As mentioned earlier, the root directory contains a <code>search</code> directory. Unsuprisingly, this directory can be used to perform searches. A search is initiated by creating a new directory inside the <code>search</code> directory, like so:</p>
+
+<pre><code>mkdir search/Trogdor
+</code></pre>
+
+<blockquote>
+<p><strong>NOTE</strong>: <code>search</code> is still in a somewhat experimental state, which is why it is a bit more rudimentary in its implementation than the <code>browse</code> and <code>playlists</code> directories.</p>
+</blockquote>
+
+<p>As you might have guessed, the name of the created directory also acts as the query. The created directory will asynchronously be populated with the results for the query:</p>
+
+<pre><code>ls search/Trogdor/
+The Bearded Bard - Trogdor The Burninator.wav
+</code></pre>
+
+<p>Currently, a query is hard limited to 100 search results. It is also only possible to search for tracks, at the moment.</p>
+
 <p>And that's the whole tour for now! </p>
 
 <h2>
-<a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+<a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Contributing</h2>
 
 <p>User interaction &amp; engagement is thoroughly encouraged! <strong>spotifile</strong> is still in active development and your feedback is very likely to impact the future direction of the project.</p>
 
@@ -227,12 +245,12 @@ dr-x------ 0 alofgren root 0 Aug  7 10:28 portraits/
 <p>Code contributions are of course very welcome, but I'd appreciate it if you'd go through the trouble of opening an issue or shoot me an e-mail before you start hacking so that we may discuss the change before any code is written. Needless to say, this doesn't necessarily apply to trivial fixes (like typo corrections) or obvious bug fixes (like segfaults). If you have a patch that you think would be neat to include, either open a pull request on GitHub, or send me a patch-mail directly.</p>
 
 <h2>
-<a id="oh-dear-why" class="anchor" href="#oh-dear-why" aria-hidden="true"><span class="octicon octicon-link"></span></a>Oh dear, why?</h2>
+<a id="oh-dear-why" class="anchor" href="#oh-dear-why" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Oh dear, why?</h2>
 
 <p>For fun, mostly. But also because I've been looking for a media playing solution that is both scriptable and ties into my otherwise somewhat minimalistic desktop environment nicely. I think this approach is not as crazy as it might initially sound for those purposes. It's worth a shot at least, yes?</p>
 
 <h2>
-<a id="dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>dependencies</h2>
+<a id="dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>dependencies</h2>
 
 <blockquote>
 <ul>
