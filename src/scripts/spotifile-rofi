@@ -1,0 +1,89 @@
+#!/bin/sh
+
+# Helper/glue script for using spotifile with rofi and mplayer
+# Can be used by binding a key (or a combination) like so (in i3wm config):
+# bindsym $mod+p exec "spotifile-rofi play_playlist"
+# bindsym $mod+o exec "spotifile-rofi play_track"
+#
+# The script does simple shell commands to, for example, build a temporary
+# playlist based on the contents of a playlist directory and loading that into mplayer.
+# It relies on an mplayer being started, listening to a fifo (the path to which may be controlled
+# by setting the SPOTIFILE_MPLAYER_FIFO environment variable)
+#
+# mplayer could be started by doing something like this:
+# mplayer -slave -idle -input file=/home/alofgren/mplayer.fifo &
+#
+mountpoint=${SPOTIFILE_MOUNTPOINT:-~/spotifile}
+mplayer_fifo=${SPOTIFILE_MPLAYER_FIFO:-~/mplayer.fifo}
+set -e
+set -x
+
+function select_track()
+{
+	pl=${1}
+	echo "${pl}"/$(ls "${pl}"/ | rofi -dmenu)
+}
+
+function select_playlist()
+{
+	echo "$mountpoint/playlists/music/$(ls ${mountpoint}/playlists/music | rofi -dmenu)"
+}
+
+function play_playlist()
+{
+	pl=$(select_playlist)
+	if [ -z "${pl}" ]; then
+		exit 1;
+	fi
+
+	tmpf=$(mktemp)
+	ls -1 "${pl}"/*.wav | shuf - > $tmpf
+	echo loadlist "$tmpf" 0 > ${mplayer_fifo}
+}
+
+function queue_playlist()
+{
+	pl=$(select_playlist)
+	if [ -z "${pl}" ]; then
+		exit 1;
+	fi
+
+	tmpf=$(mktemp)
+	ls -1 "${pl}"/*.wav > $tmpf
+	echo loadlist "$tmpf" 1 > ${mplayer_fifo}
+}
+
+
+function play_track()
+{
+	pl=$(select_playlist)
+	if [ -z ${pl} ]; then
+		exit 1;
+	fi
+
+	track=$(select_track "${pl}")
+
+	if [ -z ${track} ]; then
+		exit 1;
+	fi
+
+	echo loadfile \""${track}"/track.wav\" 0 > ${mplayer_fifo}
+}
+
+function queue_track()
+{
+	pl=$(select_playlist)
+	if [ -z ${pl} ]; then
+		exit 1;
+	fi
+
+	track=$(select_track "${pl}")
+
+	if [ -z ${track} ]; then
+		exit 1;
+	fi
+
+	echo loadfile \""${track}"/track.wav\" 1 > ${mplayer_fifo}
+}
+
+$1
