@@ -56,6 +56,8 @@ Depending on your situation, it is likely a good idea to set as restrictive perm
 
     chmod 600 ~/.config/spotifile/spotifile.conf
 
+> **NOTE**: For a full listing of supported configuration options, see [Configuration options](#configuration-options)".
+
 Now, you can leave out the credentials from the command line;
 
     ./spotifile /tmp/spotifile
@@ -176,6 +178,22 @@ As you might have guessed, the name of the created directory also acts as the qu
 Currently, a query is hard limited to 100 search results. It is also only possible to search for tracks, at the moment.
 
 And that's the whole tour for now! 
+## Configuration options
+The table below describes all currently supported configuration options. These options should be specified in a file `~/.config/spotifile/spotifile.conf`. All configuration options are also possible to pass as command line arguments (see `spotifile --help` for details).
+
+|Option|Description|
+|------|-----|
+|username|Your spotify username|
+|password|Your spotify password|
+|mountpoint|Default mountpoint|
+|bitrate_preset|Your preferred bitrate, value should be one of 96kbps, 160kbps, 320kbps|
+
+### Example configuration file
+    [spotify]
+    username=catharsis
+    password=p@a$$w0rd
+    mountpoint=/home/alofgren/spotifile
+    bitrate_preset=320kbps
 
 ## Contributing
 User interaction & engagement is thoroughly encouraged! **spotifile** is still in active development and your feedback is very likely to impact the future direction of the project.
