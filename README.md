@@ -56,7 +56,7 @@ Depending on your situation, it is likely a good idea to set as restrictive perm
 
     chmod 600 ~/.config/spotifile/spotifile.conf
 
-> **NOTE**: For a full listing of supported configuration options, see [Configuration options](#configuration-options)".
+> **NOTE**: For a full listing of supported configuration options, see [Configuration options](#configuration-options).
 
 Now, you can leave out the credentials from the command line;
 
