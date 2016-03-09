@@ -1,7 +1,7 @@
 spotifile [![Build Status](https://travis-ci.org/catharsis/spotifile.svg?branch=master)](https://travis-ci.org/catharsis/spotifile) 
 =========
 
-[FUSE](http://fuse.sourceforge.net/) file system for [Spotify](https://www.spotify.com)
+[FUSE](https://github.com/libfuse/libfuse) file system for [Spotify](https://www.spotify.com)
 
 The aim of this project is to provide a synthethic file system
 as an interface towards [Spotify](https://www.spotify.com). That includes, for example, being able
