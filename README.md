@@ -1,4 +1,4 @@
-spotifile [![Build Status](https://travis-ci.org/catharsis/spotifile.svg?branch=master)](https://travis-ci.org/catharsis/spotifile) 
+spotifile [![Build Status](https://travis-ci.org/catharsis/spotifile.svg?branch=master)](https://travis-ci.org/catharsis/spotifile)
 =========
 
 [FUSE](https://github.com/libfuse/libfuse) file system for [Spotify](https://www.spotify.com)
@@ -22,7 +22,7 @@ Browsing!
     lrwxrwxrwx 0 alofgren root 56 Jul 23 13:45 Bored -> ../../browse/tracks/spotify:track:0PncakcV6gutcv4ps2MBK1
     lrwxrwxrwx 0 alofgren root 56 Jul 23 13:45 Bullet Math -> ../../browse/tracks/spotify:track:20J7iJSATwrvRQR3enxFN3
     ...
-    
+
 Playback!
 
     $ cd /home/alofgren/spotifile/playlists/music/Hank\ Williams
@@ -72,7 +72,7 @@ To unmount the **spotifile**, simply run `fusermount -u -z /tmp/spotifile`.
 
 ## Usage
 Before all else, let's consider the directory structure of a running **spotifile** instance, and briefly discuss its contents:
-    
+
     $ ls -AlF
     total 0
     dr-x------ 0 alofgren root 0 Aug  7 09:59 browse/
@@ -126,7 +126,7 @@ The targets of these links are created *lazily*, meaning that they are materiali
     ├── albums
     ├── artists
     └── tracks
-    
+
     3 directories, 0 files
 
 This pattern of lazy creation is repeated throughout **spotifile**, for all main "objects" (currently artists, albums, and tracks). Speaking of which, let's inspect one of these browse directories:
@@ -177,7 +177,7 @@ As you might have guessed, the name of the created directory also acts as the qu
 
 Currently, a query is hard limited to 100 search results. It is also only possible to search for tracks, at the moment.
 
-And that's the whole tour for now! 
+And that's the whole tour for now!
 ## Configuration options
 The table below describes all currently supported configuration options. These options should be specified in a file `~/.config/spotifile/spotifile.conf`. All configuration options are also possible to pass as command line arguments (see `spotifile --help` for details).
 
@@ -192,8 +192,11 @@ The table below describes all currently supported configuration options. These o
     [spotify]
     username=catharsis
     password=p@a$$w0rd
-    mountpoint=/home/alofgren/spotifile
     bitrate_preset=320kbps
+
+    [spotifile]
+    mountpoint=/home/alofgren/spotifile
+
 
 ## Contributing
 User interaction & engagement is thoroughly encouraged! **spotifile** is still in active development and your feedback is very likely to impact the future direction of the project.
