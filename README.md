@@ -181,13 +181,12 @@ And that's the whole tour for now!
 ## Configuration options
 The table below describes all currently supported configuration options. These options should be specified in a file `~/.config/spotifile/spotifile.conf`. All configuration options are also possible to pass as command line arguments (see `spotifile --help` for details).
 
-|Option|Description|
-|------|-----|
-|username|Your spotify username|
-|password|Your spotify password|
-|mountpoint|Default mountpoint|
-|bitrate_preset|Your preferred bitrate, value should be one of 96kbps, 160kbps, 320kbps|
-
+|Section|Option|Description|
+|------|-----|-----|
+|spotify|username|Your spotify username|
+|spotify|password|Your spotify password|
+|spotify|bitrate_preset|Your preferred bitrate, value should be one of 96kbps, 160kbps, 320kbps|
+|spotifile|mountpoint|Default mountpoint|
 ### Example configuration file
     [spotify]
     username=catharsis
