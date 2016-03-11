@@ -19,7 +19,9 @@ spotifile_SOURCES = src/spfs_fuse.c src/spfs_fuse.h \
 					src/spfs_audio.c src/spfs_audio.h \
 					src/xspf.c src/xspf.h \
 					src/spotify-fs.c src/spotify-fs.h \
-					src/spfs_appkey.c src/spfs_appkey.h
+					src/spfs_appkey.c src/spfs_appkey.h \
+                    src/string_utils.c src/string_utils.h \
+                    src/xspf_sanitize.c src/xspf_sanitize.h
 
 tests_spfs_fuse_test_SOURCES = tests/spfs_fuse_test.c \
 							   src/spfs_fuse_utils.c src/spfs_fuse_utils.h \
