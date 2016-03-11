@@ -1,4 +1,5 @@
 #include <xspf.h>
+#include "xspf_sanitize.h"
 
 enum XSPFState {
 	INIT,
@@ -91,7 +92,7 @@ xspf * xspf_track_set_duration(xspf *x, int duration) {
 }
 xspf * xspf_track_set_title(xspf *x, const gchar *title) {
 	g_warn_if_fail(x->state == TRACK_BEGIN);
-	g_string_append_printf(x->string, "<title>%s</title>\n", title);
+	g_string_append_printf(x->string, "<title>%s</title>\n", xspf_escape_amperstand(title));
 	return x;
 }
 
