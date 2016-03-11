@@ -92,18 +92,18 @@ xspf * xspf_track_set_duration(xspf *x, int duration) {
 }
 xspf * xspf_track_set_title(xspf *x, const gchar *title) {
 	g_warn_if_fail(x->state == TRACK_BEGIN);
-	g_string_append_printf(x->string, "<title>%s</title>\n", xspf_escape_amperstand(title));
+	g_string_append_printf(x->string, "<title>%s</title>\n", xspf_escape_ampersand(title));
 	return x;
 }
 
 xspf * xspf_track_set_creator(xspf *x, const gchar *creator) {
 	g_warn_if_fail(x->state == TRACK_BEGIN);
-	g_string_append_printf(x->string, "<creator>%s</creator>\n", xspf_escape_amperstand(creator));
+	g_string_append_printf(x->string, "<creator>%s</creator>\n", xspf_escape_ampersand(creator));
 	return x;
 }
 
 xspf * xspf_track_set_album(xspf *x, const gchar *album) {
 	g_warn_if_fail(x->state == TRACK_BEGIN);
-	g_string_append_printf(x->string, "<album>%s</album>\n", xspf_escape_amperstand(album));
+	g_string_append_printf(x->string, "<album>%s</album>\n", xspf_escape_ampersand(album));
 	return x;
 }

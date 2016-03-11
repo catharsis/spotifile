@@ -14,7 +14,7 @@ const gchar * replace_all(const gchar * str, const gchar *key, const gchar * val
     return tmpstr;
 }
 
-gchar * xspf_escape_amperstand(const gchar * s) {
+gchar * xspf_escape_ampersand(const gchar * s) {
     gchar * tmpstr = str_replace(s, "&", "!amp;");
     replace_all(tmpstr, "!amp;", "&amp;");
     return tmpstr;
