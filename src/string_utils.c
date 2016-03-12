@@ -1,5 +1,6 @@
 #include "string_utils.h"
 #include <string.h>
+#include <sys/types.h>
 
 gchar *str_replace(const gchar *s, const gchar *c, const gchar *replacement) {
 	size_t s_l = strlen(s);
