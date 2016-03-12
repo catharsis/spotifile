@@ -26,14 +26,18 @@ spotifile_SOURCES = src/spfs_fuse.c src/spfs_fuse.h \
 tests_spfs_fuse_test_SOURCES = tests/spfs_fuse_test.c \
 							   src/spfs_fuse_utils.c src/spfs_fuse_utils.h \
 							   src/spfs_fuse_entity.c src/spfs_fuse_entity.h \
-							   src/spfs_path.c src/spfs_path.h
+							   src/spfs_path.c src/spfs_path.h \
+							   src/string_utils.c src/string_utils.h
 tests_spfs_fuse_test_LDADD = $(CHECK_LIBS) $(GLIB_LIBS)
 
 tests_spfs_fuse_utils_test_SOURCES = tests/spfs_fuse_utils_test.c \
-									 src/spfs_fuse_utils.c src/spfs_fuse_utils.h
+									 src/spfs_fuse_utils.c src/spfs_fuse_utils.h \
+									 src/string_utils.c src/string_utils.h
 tests_spfs_fuse_utils_test_LDADD = $(CHECK_LIBS) $(GLIB_LIBS)
 
 
 tests_xspf_test_SOURCES = tests/xspf_test.c \
-									 src/xspf.c src/xspf.h
+									 src/xspf.c src/xspf.h \
+									 src/string_utils.c src/string_utils.h \
+									 src/xspf_sanitize.c src/xspf_sanitize.h
 tests_xspf_test_LDADD = $(CHECK_LIBS) $(GLIB_LIBS)
