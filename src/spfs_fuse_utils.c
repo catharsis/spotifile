@@ -1,5 +1,4 @@
 #include <string.h>
-#include <sys/types.h>
 #include "spfs_fuse_utils.h"
 #include "string_utils.h"
 
