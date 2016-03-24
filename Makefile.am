@@ -2,7 +2,7 @@ AM_CFLAGS += -std=c99 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-fu
 AM_CPPFLAGS += -I$(top_srcdir)/src -D_GNU_SOURCE=1 -DSPOTIFILE_VERSION=\"@PACKAGE_VERSION@\"
 bin_PROGRAMS = spotifile
 dist_sbin_SCRIPTS = src/scripts/mount.spotifile
-check_PROGRAMS = tests_spfs_fuse_test tests_spfs_fuse_utils_test tests_xspf_test
+check_PROGRAMS = tests_spfs_fuse_test tests_spfs_fuse_utils_test tests_sanitize_test tests_xspf_test
 TESTS = $(check_PROGRAMS)
 spotifile_LDADD = $(SPOTIFY_LIBS) $(GLIB_LIBS) $(FUSE_LIBS)
 spotifile_SOURCES = src/spfs_fuse.c src/spfs_fuse.h \
@@ -41,3 +41,8 @@ tests_xspf_test_SOURCES = tests/xspf_test.c \
 									 src/string_utils.c src/string_utils.h \
 									 src/xspf_sanitize.c src/xspf_sanitize.h
 tests_xspf_test_LDADD = $(CHECK_LIBS) $(GLIB_LIBS)
+
+tests_sanitize_test_SOURCES = tests/sanitize_test.c \
+									 src/string_utils.c src/string_utils.h \
+									 src/xspf_sanitize.c src/xspf_sanitize.h
+tests_sanitize_test_LDADD = $(CHECK_LIBS) $(GLIB_LIBS)
