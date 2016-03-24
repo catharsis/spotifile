@@ -1,7 +1,7 @@
 #include <string.h>
+#include <stdio.h>
 #include "xspf_sanitize.h"
 #include "string_utils.h"
-#include <stdio.h>
 
 gchar * replace_all(const gchar * str, const gchar *key, const gchar * val) {
     gchar * tmpstr = str_replace(str, key, val);
