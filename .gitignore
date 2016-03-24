@@ -43,3 +43,11 @@ missing
 stamp-h1
 test-driver
 install-sh
+
+config.guess
+config.sub
+libtool
+ltmain.sh
+m4/
+test-suite.log
+tests_*
