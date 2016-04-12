@@ -6,7 +6,6 @@
 
 spfs_entity * spfs_entity_find_path(spfs_entity *root, const gchar *path) {
 	g_return_val_if_fail(root != NULL, NULL);
-	g_return_val_if_fail(root->name == NULL, NULL);
 	g_return_val_if_fail(path != NULL, NULL);
 
 	if (strlen(path) <= 0) {
