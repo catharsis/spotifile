@@ -587,12 +587,11 @@ SPFS_SPOTIFY_API_FUNC2(sp_track *, search, track, int, index)
 
 /* Image */
 void * spotify_image_data(sp_image * image, size_t * size) {
-	SPFS_SPOTIFY_API_PRELUDE(const void *, image, data);
+	SPFS_SPOTIFY_API_PRELUDE(const void *, image, data)
 	data = sp_image_data(image, size);
 	void *data_copy = g_malloc(*size);
 	memcpy(data_copy, data, *size);
-	g_mutex_unlock(&g_spotify_api_mutex);
-	return data_copy;
+	SPFS_SPOTIFY_API_POSTLUDE(data_copy)
 }
 
 /* Playlist */
@@ -633,56 +632,58 @@ SPFS_SPOTIFY_API_FUNC2(sp_playlist *, playlistcontainer, playlist, int, index)
 SPFS_SPOTIFY_API_FUNC(sp_playlistcontainer *, session, playlistcontainer)
 
 sp_link * spotify_link_create_from_artist(sp_artist *artist) {
-	sp_link *link = NULL;
-	g_mutex_lock(&g_spotify_api_mutex);
+	SPFS_SPOTIFY_API_PRELUDE(sp_link *, artist, link)
 	link = sp_link_create_from_artist(artist);
-	g_mutex_unlock(&g_spotify_api_mutex);
-	return link;
+	SPFS_SPOTIFY_API_POSTLUDE(link)
 }
 
 sp_link * spotify_link_create_from_track(sp_track *track) {
-	sp_link *link = NULL;
-	g_mutex_lock(&g_spotify_api_mutex);
+	SPFS_SPOTIFY_API_PRELUDE(sp_link *, track, link)
 	link = sp_link_create_from_track(track,
 			0 // offset in ms
 			);
-	g_mutex_unlock(&g_spotify_api_mutex);
-	return link;
+	SPFS_SPOTIFY_API_POSTLUDE(link)
 }
 
 sp_link * spotify_link_create_from_album(sp_album *album) {
-	sp_link *link = NULL;
-	g_mutex_lock(&g_spotify_api_mutex);
+	SPFS_SPOTIFY_API_PRELUDE(sp_link *, album, link)
 	link = sp_link_create_from_album(album);
-	g_mutex_unlock(&g_spotify_api_mutex);
-	return link;
+	SPFS_SPOTIFY_API_POSTLUDE(link)
 }
 
 sp_link * spotify_link_create_from_string(const char *str) {
 	sp_link *link = NULL;
-	g_mutex_lock(&g_spotify_api_mutex);
+
+	if (g_thread_self() == g_fuse_thread)
+		g_mutex_lock(&g_spotify_api_mutex);
 	link = sp_link_create_from_string(str);
-	g_mutex_unlock(&g_spotify_api_mutex);
+	if (g_thread_self() == g_fuse_thread)
+		g_mutex_unlock(&g_spotify_api_mutex);
 	return link;
 }
 
 sp_artist * spotify_link_as_artist(sp_link *link) {
 	sp_artist *artist= NULL;
-	g_mutex_lock(&g_spotify_api_mutex);
+	if (g_thread_self() == g_fuse_thread)
+		g_mutex_lock(&g_spotify_api_mutex);
 	artist = sp_link_as_artist(link);
-	g_mutex_unlock(&g_spotify_api_mutex);
+	if (g_thread_self() == g_fuse_thread)
+		g_mutex_unlock(&g_spotify_api_mutex);
 	return artist;
 }
 
 
 int spotify_link_as_string(sp_link *link, char *buf, int buffer_size) {
 	int ret = 0;
-	g_mutex_lock(&g_spotify_api_mutex);
+	if (g_thread_self() == g_fuse_thread)
+		g_mutex_lock(&g_spotify_api_mutex);
+
 	ret = sp_link_as_string(link, buf, buffer_size);
 	if (ret >= buffer_size) {
 		g_warning("Link truncated!");
 	}
-	g_mutex_unlock(&g_spotify_api_mutex);
+	if (g_thread_self() == g_fuse_thread)
+		g_mutex_unlock(&g_spotify_api_mutex);
 	return ret;
 
 }
