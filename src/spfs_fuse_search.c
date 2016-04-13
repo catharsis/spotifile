@@ -12,18 +12,13 @@ void track_search_complete_cb(sp_search *search, void *entity) {
 	spfs_entity *e = entity;
 	for (int i = 0; i < num_tracks; ++i) {
 		sp_track * track = spotify_search_track(search, i);
-		char *trackname = spotify_track_name(track);
-		char *artistname = spotify_artist_name(spotify_track_artist(track, 0));
+		gchar *trackname = spotify_track_name(track);
+		gchar *artistname = spotify_artist_name(spotify_track_artist(track, 0));
 		gchar *formatted_trackname = g_strdup_printf("%s - %s.wav", artistname, trackname);
-		spfs_entity * wav = create_track_wav_file(formatted_trackname, track);
-		g_free(trackname);
 		g_free(artistname);
+		g_free(trackname);
+		create_wav_track_link_in_directory(e, formatted_trackname, track, NULL);
 		g_free(formatted_trackname);
-		spfs_entity_dir_add_child(e, wav);
-		/*TODO: set mtime, based on create time - but don't just duplicate the code
-		 * used elsewhere... Find a way to do it generically instead, while still
-		 * supporting the different use cases of being in a callback (thus not permitted
-		 * to lock the API mutex) and not being in a callback (thus having to lock it). */
 	}
 }
 

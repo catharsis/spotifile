@@ -122,7 +122,8 @@ spfs_entity *create_track_wav_file(const gchar *name, sp_track *track) {
 
 spfs_entity *create_track_browse_dir(sp_track *track) {
 	g_return_val_if_fail(track != NULL, NULL);
-	spfs_entity *track_browse_dir = spfs_entity_find_path(SPFS_DATA->root, "/browse/tracks");
+	spfs_entity *spfs_root = spfs_entity_root_get();
+	spfs_entity *track_browse_dir = spfs_entity_find_path(spfs_root, "/browse/tracks");
 	sp_link *link = spotify_link_create_from_track(track);
 
 	g_return_val_if_fail(link != NULL, NULL);
@@ -194,3 +195,16 @@ spfs_entity *create_track_browse_dir(sp_track *track) {
 }
 
 
+void create_wav_track_link_in_directory(spfs_entity *dir, const gchar *linkname, sp_track *track, struct stat_times *stat_times) {
+	if (spfs_entity_dir_has_child(dir->e.dir, linkname))
+		return;
+
+	spfs_entity *wav_link = spfs_entity_link_create(linkname, NULL);
+	spfs_entity_set_stat_times(wav_link, stat_times);
+	spfs_entity *track_browse_dir = create_track_browse_dir(track);
+	spfs_entity *track_wav = spfs_entity_find_path(track_browse_dir, "track.wav");
+	spfs_entity_dir_add_child(dir, wav_link);
+	gchar *rpath = relpath(dir, track_wav);
+	spfs_entity_link_set_target(wav_link, rpath);
+	g_free(rpath);
+}

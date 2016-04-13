@@ -92,19 +92,7 @@ static int playlist_dir_music_readdir(const char *path, void *buf, fuse_fill_dir
 		g_free(trackname);
 
 		time_t track_create_time = spotify_playlist_track_create_time(pl, i);
-		if (!spfs_entity_dir_has_child(e->e.dir, formatted_trackname)) {
-			spfs_entity *wav_link = spfs_entity_link_create(formatted_trackname, NULL);
-			wav_link->mtime = track_create_time;
-			spfs_entity_dir_add_child(e, wav_link);
-			spfs_entity *track_browse_dir = create_track_browse_dir(track);
-			if (!track_browse_dir) g_warning("wot?");
-			spfs_entity *track_wav = spfs_entity_find_path(track_browse_dir, "track.wav");
-			if (!track_wav) g_warning("m8????");
-			gchar *rpath = relpath(e, track_wav);
-			spfs_entity_link_set_target(wav_link, rpath);
-			g_free(rpath);
-
-		}
+		create_wav_track_link_in_directory(e, formatted_trackname, track, &(struct stat_times){.mtime = track_create_time});
 		g_free(formatted_trackname);
 	}
 
