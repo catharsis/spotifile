@@ -53,6 +53,9 @@ spfs_entity * spfs_entity_find_path(spfs_entity *root, const gchar *path) {
 gchar *spfs_entity_get_full_path(spfs_entity *e) {
 	g_return_val_if_fail(e != NULL, NULL);
 	if (e->name == NULL) {
+		g_return_val_if_fail(e == spfs_entity_root_get(), NULL); /*Calling this function with a yet unnamed
+																   entity that is not the root is most likely
+																   a bug */
 		return g_strdup("/");
 	}
 
@@ -256,9 +259,16 @@ spfs_entity * spfs_entity_dir_create(const gchar *name, struct spfs_dir_ops *ops
 		g_debug("created root");
 	return e;
 }
+static spfs_entity *spfs_root;
 
 spfs_entity *spfs_entity_root_create(struct spfs_dir_ops * ops) {
-	return spfs_entity_dir_create(NULL, ops);
+	g_return_val_if_fail(spfs_root == NULL, NULL);
+	spfs_root = spfs_entity_dir_create(NULL, ops);
+	return spfs_root;
+}
+
+spfs_entity *spfs_entity_root_get(void) {
+	return spfs_root;
 }
 
 spfs_entity *spfs_entity_link_create(const gchar *name, struct spfs_link_ops *ops) {
