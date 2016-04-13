@@ -18,7 +18,7 @@ static int playlist_dir_meta_readdir(const char *path, void *buf, fuse_fill_dir_
 		time_t track_create_time = spotify_playlist_track_create_time(pl, i);
 		if (!spfs_entity_dir_has_child(e->e.dir, trackname)) {
 			spfs_entity *track_link = spfs_entity_link_create(trackname, NULL);
-			track_link->mtime = track_create_time;
+			spfs_entity_set_stat_times(track_link, &(struct stat_times){.mtime = track_create_time});
 			spfs_entity_dir_add_child(e, track_link);
 			gchar *rpath = relpath(e, track_browse_dir);
 			spfs_entity_link_set_target(track_link, rpath);

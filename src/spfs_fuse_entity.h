@@ -13,15 +13,19 @@ typedef enum SpfsEntityType {
 	SPFS_LINK = S_IFLNK,
 } SpfsEntityType;
 
+struct stat_times {
+	time_t ctime;
+	time_t atime;
+	time_t mtime;
+};
+
 typedef struct spfs_entity {
 	gchar *name;
 	struct spfs_entity *parent;
 	void *auxdata;
 	SpfsEntityType type;
 	unsigned int refs;
-	time_t ctime;
-	time_t atime;
-	time_t mtime;
+	struct stat_times times;
 	union {
 		struct spfs_file *file;
 		struct spfs_dir *dir;
@@ -194,5 +198,7 @@ spfs_entity *spfs_entity_link_create(const gchar *name, struct spfs_link_ops *op
  * @param[in] target The target path
  */
 void spfs_entity_link_set_target(spfs_entity *link, const gchar *target);
+
+void spfs_entity_set_stat_times(spfs_entity *e, struct stat_times *times);
 
 #endif /* SPFS_FUSE_ENTITY_H */

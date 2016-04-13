@@ -117,12 +117,12 @@ void spfs_entity_stat(spfs_entity *e, struct stat *statbuf) {
 	}
 
 	statbuf->st_uid = getuid();
-	if (e->ctime)
-		statbuf->st_ctime = e->ctime;
-	if (e->mtime)
-		statbuf->st_mtime = e->mtime;
-	if (e->atime)
-		statbuf->st_atime = e->atime;
+	if (e->times.ctime)
+		statbuf->st_ctime = e->times.ctime;
+	if (e->times.mtime)
+		statbuf->st_mtime = e->times.mtime;
+	if (e->times.atime)
+		statbuf->st_atime = e->times.atime;
 
 }
 void spfs_entity_dir_add_child(spfs_entity *parent, spfs_entity *child) {
@@ -170,9 +170,9 @@ static spfs_entity * spfs_entity_create(const gchar *name, SpfsEntityType type) 
 	e->auxdata = NULL;
 	e->refs = 0;
 	time_t t = time(NULL);
-	e->atime = t;
-	e->ctime = t;
-	e->mtime = t;
+	e->times.atime = t;
+	e->times.ctime = t;
+	e->times.mtime = t;
 	return e;
 }
 
@@ -274,3 +274,11 @@ spfs_entity *spfs_entity_link_create(const gchar *name, struct spfs_link_ops *op
 	return e;
 }
 
+void spfs_entity_set_stat_times(spfs_entity *e, struct stat_times *times) {
+	g_return_if_fail(e != NULL);
+
+	if (!times)
+		return;
+
+	memcpy(&e->times, times, sizeof(*times));
+}
