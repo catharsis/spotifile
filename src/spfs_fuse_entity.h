@@ -137,7 +137,13 @@ void spfs_entity_destroy(spfs_entity *e);
  * \p spfs_entity_destroy() when it's no longer needed
  */
 spfs_entity * spfs_entity_root_create(struct spfs_dir_ops *ops);
+
+/**
+ * Returns the current SPFS root if it exists.
+ * @return The current SPFS root, if defined. Otherwise null.
+ */
 spfs_entity * spfs_entity_root_get(void);
+
 /**
  * Creates and returns a new file entity
  * @param[in] name The name of the file
