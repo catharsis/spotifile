@@ -34,11 +34,11 @@ typedef struct spfs_entity {
 } spfs_entity;
 
 
-typedef int (*SpfsReadFunc)(const char *path, char *buff, size_t sz, off_t offset, struct fuse_file_info *fi);
-typedef int (*SpfsOpenFunc)(const char *path, struct fuse_file_info *fi);
-typedef int (*SpfsReleaseFunc)(const char *path, struct fuse_file_info *fi);
+typedef int (*SpfsReadFunc)(struct fuse_file_info *fi, char *buf, size_t sz, off_t offset);
+typedef int (*SpfsOpenFunc)(struct fuse_file_info *fi);
+typedef int (*SpfsReleaseFunc)(struct fuse_file_info *fi);
 
-typedef int (*SpfsReaddirFunc)(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
+typedef int (*SpfsReaddirFunc)(struct fuse_file_info *fi, void *buf, fuse_fill_dir_t filler, off_t offset);
 
 typedef int (*SpfsReadlinkFunc)(const char *path, char *buf, size_t len);
 typedef int (*SpfsMkdirFunc)(spfs_entity *parent, const char *dirname, mode_t mode);

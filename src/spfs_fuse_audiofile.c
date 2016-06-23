@@ -36,21 +36,21 @@ static void fill_wav_header(struct wav_header *h, int channels, int rate, int du
 	h->data_size = h->size - 44;
 }
 
-int wav_open(const char *path, struct fuse_file_info *fi) {
+int wav_open(struct fuse_file_info *fi) {
 	if ((SPFS_DATA)->music_playing)
 		return -EBUSY;
 	(SPFS_DATA)->music_playing = true;
 	return 0;
 }
 
-int wav_release(const char *path, struct fuse_file_info *fi) {
+int wav_release(struct fuse_file_info *fi) {
 	if (G_UNLIKELY(!(SPFS_DATA)->music_playing))
 		g_warn_if_reached();
 	(SPFS_DATA)->music_playing = false;
 	return 0;
 }
 
-int wav_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+int wav_read(struct fuse_file_info *fi, char *buf, size_t size, off_t offset) {
 	static off_t expoff = 0;
 	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	sp_session *session = SPFS_SP_SESSION;

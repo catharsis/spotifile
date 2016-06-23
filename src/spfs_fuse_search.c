@@ -2,8 +2,7 @@
 #include "spfs_fuse_track.h"
 #include "spfs_spotify.h"
 #include <glib.h>
-static int search_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-		off_t offset, struct fuse_file_info *fi) {
+static int search_readdir(struct fuse_file_info *fi, void *buf, fuse_fill_dir_t filler, off_t offset) {
 	return 0;
 }
 

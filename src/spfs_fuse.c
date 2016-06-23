@@ -64,7 +64,7 @@ int spfs_access(const char *path, int mask)
 	return -EINVAL;
 }
 
-int connection_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+int connection_read(struct fuse_file_info *fi, char *buf, size_t size, off_t offset) {
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
 	gchar *state_str = g_strdup_printf("%s\n",
@@ -82,7 +82,7 @@ int spfs_open(const char *path, struct fuse_file_info *fi)
 	fi->fh = SPFS_ENT2FH(e);
 	int ret = 0;
 	if (e->e.file->ops->open != NULL) {
-		ret = e->e.file->ops->open(path, fi);
+		ret = e->e.file->ops->open(fi);
 	}
 
 	if (G_LIKELY(!ret)) {
@@ -101,7 +101,7 @@ int spfs_release(const char *path, struct fuse_file_info *fi)
 	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	if (e->e.file->ops->release != NULL)
 		/* "The return value of release is ignored." */
-		e->e.file->ops->release(path, fi);
+		e->e.file->ops->release(fi);
 	e->refs--;
 	return 0;
 }
@@ -111,7 +111,7 @@ int spfs_releasedir(const char *path, struct fuse_file_info *fi)
 	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	if (e->e.dir->ops->release != NULL)
 		/* "The return value of release is ignored." */
-		e->e.dir->ops->release(path, fi);
+		e->e.dir->ops->release(fi);
 	e->refs--;
 	return 0;
 }
@@ -136,7 +136,7 @@ int spfs_read(const char *path, char *buf, size_t size, off_t offset,
 		g_return_val_if_reached(-EINVAL);
 	}
 
-	return e->e.file->ops->read(path, buf, size, offset, fi);
+	return e->e.file->ops->read(fi, buf, size, offset);
 }
 
 int spfs_readlink(const char *path, char *buf, size_t len) {
@@ -164,7 +164,7 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	spfs_dir *dir = e->e.dir;
 	g_debug("filling existing dir %s ", spfs_entity_get_full_path(e));
 	if (dir->ops->readdir != NULL) {
-		ret = dir->ops->readdir(spfs_entity_get_full_path(e), buf, filler, offset, fi);
+		ret = dir->ops->readdir(fi, buf, filler, offset);
 	}
 	fill_dir_children(e->e.dir, buf, filler);
 	return ret;

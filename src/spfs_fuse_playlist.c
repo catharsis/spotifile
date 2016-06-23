@@ -4,8 +4,7 @@
 #include "spfs_fuse_track.h"
 #include "xspf.h"
 /*readdir for a single playlist directory*/
-static int playlist_dir_meta_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
-		struct fuse_file_info *fi) {
+static int playlist_dir_meta_readdir(struct fuse_file_info *fi, void *buf, fuse_fill_dir_t filler, off_t offset) {
 
 	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	sp_playlist *pl = (sp_playlist *)e->auxdata;
@@ -53,8 +52,7 @@ static xspf * populate_xspf_from_sp_track(xspf *x, sp_track *track) {
 	return x;
 }
 
-static int xspf_read(const char *path, char *buf, size_t size, off_t offset,
-		struct fuse_file_info *fi) {
+static int xspf_read(struct fuse_file_info *fi, char *buf, size_t size, off_t offset) {
 	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	GHashTableIter iter;
 	gpointer k, v;
@@ -79,8 +77,7 @@ static int xspf_read(const char *path, char *buf, size_t size, off_t offset,
 	return size;
 }
 
-static int playlist_dir_music_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
-		struct fuse_file_info *fi) {
+static int playlist_dir_music_readdir(struct fuse_file_info *fi, void *buf, fuse_fill_dir_t filler, off_t offset) {
 
 	spfs_entity *e = SPFS_FH2ENT(fi->fh);
 	sp_playlist *pl = (sp_playlist *)e->auxdata;
@@ -108,8 +105,8 @@ static int playlist_dir_music_readdir(const char *path, void *buf, fuse_fill_dir
 }
 
 /*readdir for the "music" playlists directory*/
-int playlists_music_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
-		struct fuse_file_info *fi) {
+int playlists_music_dir_readdir(struct fuse_file_info *fi, void *buf,
+		fuse_fill_dir_t filler, off_t offset) {
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
 	spfs_entity *playlists_dir = SPFS_FH2ENT(fi->fh);
@@ -132,8 +129,8 @@ int playlists_music_dir_readdir(const char *path, void *buf, fuse_fill_dir_t fil
 }
 
 /*readdir for the "meta" playlists directory*/
-int playlists_meta_dir_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
-		struct fuse_file_info *fi) {
+int playlists_meta_dir_readdir(struct fuse_file_info *fi, void *buf,
+		fuse_fill_dir_t filler, off_t offset) {
 	sp_session *session = SPFS_SP_SESSION;
 	g_return_val_if_fail(session != NULL, 0);
 	spfs_entity *playlists_dir = SPFS_FH2ENT(fi->fh);
