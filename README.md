@@ -31,6 +31,9 @@ Playback!
 
 and so forth.
 
+### Basic requirements
+- A Spotify *Premium* account
+
 ![gif](http://i.imgur.com/jP91r79.gif)
 ## Installation
 
