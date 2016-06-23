@@ -162,9 +162,9 @@ int spfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offs
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	spfs_dir *dir = e->e.dir;
-	g_debug("filling existing dir %s ", path);
+	g_debug("filling existing dir %s ", spfs_entity_get_full_path(e));
 	if (dir->ops->readdir != NULL) {
-		ret = dir->ops->readdir(path, buf, filler, offset, fi);
+		ret = dir->ops->readdir(spfs_entity_get_full_path(e), buf, filler, offset, fi);
 	}
 	fill_dir_children(e->e.dir, buf, filler);
 	return ret;
