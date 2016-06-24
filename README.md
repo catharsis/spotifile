@@ -32,6 +32,10 @@ Playback!
 and so forth.
 
 ![gif](http://i.imgur.com/jP91r79.gif)
+
+### Basic requirements
+- A Spotify *Premium* account
+
 ## Installation
 
 ### Arch Linux
